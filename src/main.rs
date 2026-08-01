@@ -10,9 +10,11 @@ use sf_api::session::SimpleSession;
 
 mod constant;
 mod expedition;
+mod inventory;
 mod log;
 
 use expedition::expedition;
+use inventory::inventory;
 
 #[tokio::main]
 async fn main() -> Result<(), sf_api::error::SFError> {
@@ -62,21 +64,21 @@ async fn process_session(mut session: SimpleSession) {
         return eprintln!("ERROR UPDATING SESSION ({:?})", err); 
     }
 
-    if let Err(err) = log::log(&session, "DOWNLOADED AND READY TO RUN") {
-        return eprintln!("LOG ERROR ({:?})", err);
-    }
+    let _ = log::log(&session, "DOWNLOADED AND READY TO RUN");
 
     loop {
+        let hour = chrono::Local::now().hour();
+
+        if let Err(err) = inventory(&mut session).await {
+            return eprintln!("INVENTORY MANAGEMENT ERROR ({:?})", err);
+        }
+
         let Some(gs) = session.game_state() else {
             return eprintln!("GAME STATE IS NOT POPULATED"); 
         };
 
-        let hour = chrono::Local::now().hour();
-
         if gs.character.inventory.count_free_slots() == 0 {
-            if let Err(err) = log::log(&session, "FULL INVENTORY, SKIPPING EXPEDITIONS") {
-                return eprintln!("LOG ERROR ({:?})", err);
-            }
+            let _ = log::log(&session, "FULL INVENTORY, SKIPPING EXPEDITIONS");
 
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
 
