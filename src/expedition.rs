@@ -1,3 +1,6 @@
+use rand::thread_rng;
+use rand_distr::{Distribution, Normal};
+
 use sf_api::{
     command::Command,
     error::SFError,
@@ -94,8 +97,16 @@ pub async fn expedition(session: &mut SimpleSession) -> Result<(), SFError> {
     while let Some(cmd) = expedition_next(session)? {
         session.send_command(cmd).await?;
 
-        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        wait_between_actions().await;
     }
 
     Ok(())
+}
+
+async fn wait_between_actions() {
+    let (mean, std, min, max): (f64, f64, f64, f64) = (2000.0, 1000.0, 500.0, 3500.0);
+
+    let wait_time = Normal::new(mean, std).unwrap().sample(&mut thread_rng()).clamp(min, max) as u64;
+
+    tokio::time::sleep(std::time::Duration::from_millis(wait_time)).await;
 }

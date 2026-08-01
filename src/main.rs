@@ -1,6 +1,9 @@
 use std::env;
 use std::process;
 
+use rand::thread_rng;
+use rand_distr::{Distribution, Normal};
+
 use sf_api::command::Command;
 use sf_api::session::SimpleSession;
 
@@ -23,9 +26,9 @@ async fn main() -> Result<(), sf_api::error::SFError> {
         process::exit(1);
     });
 
-    let mut sessions = match SimpleSession::login_sf_account(&username, &password).await {
+    let sessions = match SimpleSession::login_sf_account(&username, &password).await {
         Ok(sessions) => {
-            println!("YOUR '{username}' ACCOUNT IS LOGGED IN");
+            println!("ACCOUNT LOGGED IN");
 
             sessions
         }
@@ -37,25 +40,57 @@ async fn main() -> Result<(), sf_api::error::SFError> {
         }
     };
 
-    for session in &mut sessions {
-        session.send_command(Command::Update).await.unwrap();
+    let mut handles = Vec::new();
 
-        log::log(session, "DOWNLOADED AND READY TO RUN")?;
+    for session in sessions {
+        handles.push(tokio::spawn(process_session(session)));
     }
 
-    for mut session in sessions {
-        let gs = session.game_state().unwrap();
+    for handle in handles {
+        if let Err(err) = handle.await {
+            eprintln!("TASK JOIN ERROR: {:?}", err);
+        }
+    }
 
-        if gs.character.inventory.count_free_slots() < 2 {
-            log::log(&session, "LESS THAN 2 FREE INVENTORY SLOTS, SKIPPING EXPEDITION")?;
+    Ok(())
+}
+
+async fn process_session(mut session: SimpleSession) {
+    if let Err(err) = session.send_command(Command::Update).await {
+        return eprintln!("ERROR UPDATING SESSION ({:?})", err); 
+    }
+
+    if let Err(err) = log::log(&session, "DOWNLOADED AND READY TO RUN") {
+        return eprintln!("LOG ERROR: {:?}", err);
+    }
+
+    loop {
+        let Some(gs) = session.game_state() else {
+            return eprintln!("GAME STATE IS NOT POPULATED"); 
+        };
+
+        if gs.character.inventory.count_free_slots() == 0 {
+            if let Err(err) = log::log(&session, "FULL INVENTORY, SKIPPING EXPEDITIONS") {
+                return eprintln!("LOG ERROR: {:?}", err);
+            }
+
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
 
             continue;
         }
 
         if let Err(err) = expedition(&mut session).await {
-            log::log(&session, &format!("ERROR RUNNING EXPEDITION ({:?})", err))?;
+            let _ = log::log(&session, &format!("ERROR RUNNING EXPEDITION ({:?})", err));
         }
-    }
 
-    Ok(())
+        wait_between_actions().await;
+    }
+}
+
+async fn wait_between_actions() {
+    let (mean, std, min, max): (f64, f64, f64, f64) = (10000.0, 1000.0, 5000.0, 15000.0);
+
+    let wait_time = Normal::new(mean, std).unwrap().sample(&mut thread_rng()).clamp(min, max) as u64;
+
+    tokio::time::sleep(std::time::Duration::from_millis(wait_time)).await;
 }
