@@ -1,12 +1,14 @@
 use std::env;
 use std::process;
 
+use chrono::Timelike;
 use rand::thread_rng;
 use rand_distr::{Distribution, Normal};
 
 use sf_api::command::Command;
 use sf_api::session::SimpleSession;
 
+mod constant;
 mod expedition;
 mod log;
 
@@ -61,7 +63,7 @@ async fn process_session(mut session: SimpleSession) {
     }
 
     if let Err(err) = log::log(&session, "DOWNLOADED AND READY TO RUN") {
-        return eprintln!("LOG ERROR: {:?}", err);
+        return eprintln!("LOG ERROR ({:?})", err);
     }
 
     loop {
@@ -69,9 +71,11 @@ async fn process_session(mut session: SimpleSession) {
             return eprintln!("GAME STATE IS NOT POPULATED"); 
         };
 
+        let hour = chrono::Local::now().hour();
+
         if gs.character.inventory.count_free_slots() == 0 {
             if let Err(err) = log::log(&session, "FULL INVENTORY, SKIPPING EXPEDITIONS") {
-                return eprintln!("LOG ERROR: {:?}", err);
+                return eprintln!("LOG ERROR ({:?})", err);
             }
 
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
@@ -79,8 +83,10 @@ async fn process_session(mut session: SimpleSession) {
             continue;
         }
 
-        if let Err(err) = expedition(&mut session).await {
-            let _ = log::log(&session, &format!("ERROR RUNNING EXPEDITION ({:?})", err));
+        if gs.tavern.thirst_for_adventure_sec > 0 && hour > constant::EXPEDITION_START_HOUR {
+            if let Err(err) = expedition(&mut session).await {
+                let _ = log::log(&session, &format!("ERROR RUNNING EXPEDITION ({:?})", err));
+            }
         }
 
         wait_between_actions().await;
