@@ -13,8 +13,6 @@ use crate::log::log;
 
 fn expedition_next(session: &mut SimpleSession) -> Option<Command> {
     let Some(gs) = session.game_state() else {
-        println!("GAME STATE IS NOT POPULATED");
-
         return None;
     };
 

@@ -1,7 +1,4 @@
-use sf_api::{
-    gamestate::character::Class,
-    session::SimpleSession,
-};
+use sf_api::{gamestate::character::Class, session::SimpleSession};
 
 fn get_class_name(class: Class) -> &'static str {
     match class {
@@ -22,8 +19,6 @@ fn get_class_name(class: Class) -> &'static str {
 
 pub(crate) fn log(session: &SimpleSession, message: &str) {
     let Some(gs) = session.game_state() else {
-        println!("GAME STATE IS NOT POPULATED");
-
         return;
     };
 

@@ -6,10 +6,7 @@ use chrono::Timelike;
 use rand::thread_rng;
 use rand_distr::{Distribution, Normal};
 
-use sfapi::{
-    command::Command,
-    session::SimpleSession,
-};
+use sf_api::{command::Command, gamestate::tavern::CurrentAction, session::SimpleSession};
 
 mod constant;
 mod expedition;
@@ -72,21 +69,27 @@ async fn process_session(mut session: SimpleSession) {
     loop {
         let hour = chrono::Local::now().hour();
 
+        if session.game_state().is_none() {
+            return eprintln!("GAME STATE IS NOT POPULATED");
+        }
+
+        let thirst = session.game_state().unwrap().tavern.thirst_for_adventure_sec;
+
         inventory(&mut session).await;
 
-        let Some(gs) = session.game_state() else {
-            return eprintln!("GAME STATE IS NOT POPULATED");
-        };
+        let tavern_action = session.game_state().unwrap().tavern.current_action;
 
-        if gs.character.inventory.count_free_slots() == 0 {
+        if session.game_state().unwrap().character.inventory.count_free_slots() == 0 {
             log::log(&session, "FULL INVENTORY, SKIPPING EXPEDITIONS");
 
-            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            wait_between_actions().await;
 
             continue;
         }
 
-        if gs.tavern.thirst_for_adventure_sec > 0 && hour > constant::EXPEDITION_START_HOUR {
+        let expedition_running = tavern_action == CurrentAction::Expedition;
+
+        if (thirst > 0 || expedition_running) && hour > constant::EXPEDITION_START_HOUR {
             expedition(&mut session).await;
         }
 
