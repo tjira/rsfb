@@ -1,6 +1,7 @@
-use sf_api::error::SFError;
-use sf_api::gamestate::character::Class;
-use sf_api::session::SimpleSession;
+use sf_api::{
+    gamestate::character::Class,
+    session::SimpleSession,
+};
 
 fn get_class_name(class: Class) -> &'static str {
     match class {
@@ -19,14 +20,18 @@ fn get_class_name(class: Class) -> &'static str {
     }
 }
 
-pub(crate) fn log(session: &SimpleSession, message: &str) -> Result<(), sf_api::error::SFError> {
-    let gs = session.game_state().ok_or_else(|| SFError::InvalidRequest("GAME STATE IS NOT POPULATED"))?;
+pub(crate) fn log(session: &SimpleSession, message: &str) {
+    let Some(gs) = session.game_state() else {
+        println!("GAME STATE IS NOT POPULATED");
+
+        return;
+    };
 
     let (name, level, class) = {
-        (gs.character.name.clone(), gs.character.level, get_class_name(gs.character.class))
+        let (name, level) = (gs.character.name.clone(), gs.character.level);
+
+        (name, level, get_class_name(gs.character.class))
     };
 
     println!("Level {level} {class} ({name}): {message}");
-
-    Ok(())
 }

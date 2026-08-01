@@ -1,12 +1,15 @@
 use std::env;
 use std::process;
+use std::time::Duration;
 
 use chrono::Timelike;
 use rand::thread_rng;
 use rand_distr::{Distribution, Normal};
 
-use sf_api::command::Command;
-use sf_api::session::SimpleSession;
+use sfapi::{
+    command::Command,
+    session::SimpleSession,
+};
 
 mod constant;
 mod expedition;
@@ -61,24 +64,22 @@ async fn main() -> Result<(), sf_api::error::SFError> {
 
 async fn process_session(mut session: SimpleSession) {
     if let Err(err) = session.send_command(Command::Update).await {
-        return eprintln!("ERROR UPDATING SESSION ({:?})", err); 
+        return eprintln!("ERROR UPDATING SESSION ({:?})", err);
     }
 
-    let _ = log::log(&session, "DOWNLOADED AND READY TO RUN");
+    log::log(&session, "DOWNLOADED AND READY TO RUN");
 
     loop {
         let hour = chrono::Local::now().hour();
 
-        if let Err(err) = inventory(&mut session).await {
-            return eprintln!("INVENTORY MANAGEMENT ERROR ({:?})", err);
-        }
+        inventory(&mut session).await;
 
         let Some(gs) = session.game_state() else {
-            return eprintln!("GAME STATE IS NOT POPULATED"); 
+            return eprintln!("GAME STATE IS NOT POPULATED");
         };
 
         if gs.character.inventory.count_free_slots() == 0 {
-            let _ = log::log(&session, "FULL INVENTORY, SKIPPING EXPEDITIONS");
+            log::log(&session, "FULL INVENTORY, SKIPPING EXPEDITIONS");
 
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
 
@@ -86,9 +87,7 @@ async fn process_session(mut session: SimpleSession) {
         }
 
         if gs.tavern.thirst_for_adventure_sec > 0 && hour > constant::EXPEDITION_START_HOUR {
-            if let Err(err) = expedition(&mut session).await {
-                let _ = log::log(&session, &format!("ERROR RUNNING EXPEDITION ({:?})", err));
-            }
+            expedition(&mut session).await;
         }
 
         wait_between_actions().await;
@@ -98,7 +97,7 @@ async fn process_session(mut session: SimpleSession) {
 async fn wait_between_actions() {
     let (mean, std, min, max): (f64, f64, f64, f64) = (10000.0, 1000.0, 5000.0, 15000.0);
 
-    let wait_time = Normal::new(mean, std).unwrap().sample(&mut thread_rng()).clamp(min, max) as u64;
+    let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
 
-    tokio::time::sleep(std::time::Duration::from_millis(wait_time)).await;
+    tokio::time::sleep(Duration::from_millis(number.clamp(min, max) as u64)).await;
 }
