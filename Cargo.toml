@@ -1,0 +1,11 @@
+[package]
+name = "rsfb"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+sf-api = { git = "https://github.com/the-marenga/sf-api.git" }
+chrono = "0.4"
+
+[target.'cfg(all())'.dependencies]
+tokio = { version = "1.53", features = ["macros", "rt-multi-thread"] }
