@@ -5,26 +5,27 @@ use rand_distr::{Distribution, Normal};
 
 use sf_api::{
     command::Command,
-    gamestate::GameState,
     gamestate::items::{EquipmentSlot, Item, PlayerItemPosition},
     session::SimpleSession,
 };
 
 use crate::log::log;
 
-fn should_equip(item: &Item, gs: &GameState, slot: EquipmentSlot) -> bool {
-    let attr = gs.character.class.main_attribute();
+fn should_equip(session: &SimpleSession, item: &Item, slot: EquipmentSlot) -> bool {
+    let attr = session.game_state().unwrap().character.class.main_attribute();
 
-    if !item.can_be_equipped_by(gs.character.class) {
+    if !item.can_be_equipped_by(session.game_state().unwrap().character.class) {
         return false;
     }
 
-    let equipped = gs.character.equipment.0[slot].as_ref();
+    let equipped = session.game_state().unwrap().character.equipment.0[slot].as_ref();
 
     item.attributes[attr] > equipped.map(|eq| eq.attributes[attr]).unwrap_or(0)
 }
 
-fn inventory_next(gs: &GameState) -> Option<Command> {
+fn inventory_next(session: &SimpleSession) -> Option<Command> {
+    let gs = session.game_state().unwrap();
+
     for (bag_pos, slot) in gs.character.inventory.iter() {
         let Some(item) = slot else {
             continue;
@@ -36,11 +37,11 @@ fn inventory_next(gs: &GameState) -> Option<Command> {
 
         let (from_pos, item_ident) = (PlayerItemPosition::from(bag_pos), item.command_ident());
 
-        if should_equip(item, gs, slot) {
+        if should_equip(session, item, slot) {
             return Some(Command::Equip { from_pos, to_slot: slot, item_ident });
         }
 
-        if !should_equip(item, gs, slot) {
+        if !should_equip(session, item, slot) {
             return Some(Command::SellShop { item_pos: from_pos, item_ident });
         }
     }
@@ -57,11 +58,7 @@ async fn wait_between_actions() {
 }
 
 pub async fn inventory(session: &mut SimpleSession) {
-    while let Some(gs) = session.game_state() {
-        let Some(cmd) = inventory_next(gs) else {
-            break;
-        };
-
+    while let Some(cmd) = inventory_next(session) {
         match &cmd {
             Command::Equip { to_slot, .. } => {
                 let message = format!("EQUIPPING ITEM TO '{:?}' SLOT", to_slot);

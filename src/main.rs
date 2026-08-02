@@ -9,10 +9,12 @@ use rand_distr::{Distribution, Normal};
 use sf_api::{command::Command, gamestate::tavern::CurrentAction, session::SimpleSession};
 
 mod constant;
+mod daily;
 mod expedition;
 mod inventory;
 mod log;
 
+use daily::daily;
 use expedition::expedition;
 use inventory::inventory;
 
@@ -76,6 +78,8 @@ async fn process_session(mut session: SimpleSession) {
         }
 
         let thirst = session.game_state().unwrap().tavern.thirst_for_adventure_sec;
+
+        daily(&mut session).await;
 
         inventory(&mut session).await;
 
