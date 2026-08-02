@@ -30,17 +30,17 @@ fn inventory_next(gs: &GameState) -> Option<Command> {
             continue;
         };
 
-        let Some(eq_slot) = item.typ.equipment_slot() else {
+        let Some(slot) = item.typ.equipment_slot() else {
             continue;
         };
 
         let (from_pos, item_ident) = (PlayerItemPosition::from(bag_pos), item.command_ident());
 
-        if should_equip(item, gs, eq_slot) {
-            return Some(Command::Equip { from_pos, to_slot: eq_slot, item_ident });
+        if should_equip(item, gs, slot) {
+            return Some(Command::Equip { from_pos, to_slot: slot, item_ident });
         }
 
-        if !should_equip(item, gs, eq_slot) {
+        if !should_equip(item, gs, slot) {
             return Some(Command::SellShop { item_pos: from_pos, item_ident });
         }
     }
@@ -64,7 +64,7 @@ pub async fn inventory(session: &mut SimpleSession) {
 
         match &cmd {
             Command::Equip { to_slot, .. } => {
-                let message = format!("EQUIPPING ITEM TO SLOT {:?}", to_slot);
+                let message = format!("EQUIPPING ITEM TO '{:?}' SLOT", to_slot);
 
                 log(session, &message);
             }
@@ -77,7 +77,7 @@ pub async fn inventory(session: &mut SimpleSession) {
         }
 
         if let Err(err) = session.send_command(cmd).await {
-            log(session, &format!("INVENTORY SEND COMMAND ERROR: {:?}", err));
+            log(session, &format!("INVENTORY SEND COMMAND ERROR ({:?})", err));
 
             break;
         }

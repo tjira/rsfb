@@ -1,1 +1,1 @@
-pub const EXPEDITION_START_HOUR: u32 = 8;
+pub const EXPEDITION_START_HOUR: u32 = 7;

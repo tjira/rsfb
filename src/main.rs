@@ -70,7 +70,9 @@ async fn process_session(mut session: SimpleSession) {
         let hour = chrono::Local::now().hour();
 
         if session.game_state().is_none() {
-            return eprintln!("GAME STATE IS NOT POPULATED");
+            log::log(&session, "GAME STATE IS NOT POPULATED");
+
+            continue;
         }
 
         let thirst = session.game_state().unwrap().tavern.thirst_for_adventure_sec;
@@ -89,7 +91,7 @@ async fn process_session(mut session: SimpleSession) {
 
         let expedition_running = tavern_action == CurrentAction::Expedition;
 
-        if (thirst > 0 || expedition_running) && hour > constant::EXPEDITION_START_HOUR {
+        if (thirst > 0 || expedition_running) && hour >= constant::EXPEDITION_START_HOUR {
             expedition(&mut session).await;
         }
 
