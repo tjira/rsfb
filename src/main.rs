@@ -12,12 +12,14 @@ mod constant;
 mod daily;
 mod dungeon;
 mod expedition;
+mod guard;
 mod inventory;
 mod log;
 
 use daily::daily;
 use dungeon::dungeon;
 use expedition::expedition;
+use guard::guard;
 use inventory::inventory;
 
 #[tokio::main]
@@ -81,6 +83,12 @@ async fn process_session(mut session: SimpleSession) {
 
                 wait_between_actions().await;
             }
+
+            continue;
+        }
+
+        if guard(&mut session).await {
+            wait_between_actions().await;
 
             continue;
         }
