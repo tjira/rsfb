@@ -33,11 +33,11 @@ fn should_equip(session: &SimpleSession, it: &Item, slot: EquipmentSlot) -> bool
     let old_is_special = eq.is_epic() || eq.is_legendary();
 
     if !new_is_special && old_is_special {
-        return a_new > a_old * crate::constant::EPIC_LEGENDARY_MULTIPLIER
+        return a_new > a_old * crate::constant::EPIC_LEGENDARY_MULTIPLIER;
     }
 
     if new_is_special && !old_is_special {
-        return a_old < a_new * crate::constant::EPIC_LEGENDARY_MULTIPLIER
+        return a_old < a_new * crate::constant::EPIC_LEGENDARY_MULTIPLIER;
     }
 
     a_new > a_old
@@ -65,7 +65,13 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
                 return Some(Command::SellShop { item_pos: from_pos, item_ident });
             }
 
-            if is_main_attr || is_constitution | is_winged_bottle {
+            let is_full = gs.character.active_potions.iter().flatten().any(|a| {
+                let (ts, max) = (chrono::Local::now().timestamp(), 12 * 24 * 60 * 60);
+
+                a.typ == potion.typ && a.expires.map_or(false, |exp| exp.timestamp() - ts >= max)
+            });
+
+            if (is_main_attr || is_constitution || is_winged_bottle) && !is_full {
                 return Some(Command::UsePotion { from: ItemPosition::from(from_pos), item_ident });
             }
         }

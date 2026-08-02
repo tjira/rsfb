@@ -10,11 +10,13 @@ use sf_api::{command::Command, gamestate::tavern::CurrentAction, session::Simple
 
 mod constant;
 mod daily;
+mod dungeon;
 mod expedition;
 mod inventory;
 mod log;
 
 use daily::daily;
+use dungeon::dungeon;
 use expedition::expedition;
 use inventory::inventory;
 
@@ -83,10 +85,8 @@ async fn process_session(mut session: SimpleSession) {
             continue;
         }
 
-        daily(&mut session).await;
-
-        if session.game_state().is_none() {
-            continue;
+        if hour < constant::EXPEDITION_START_HOUR {
+            wait_between_actions().await;
         }
 
         inventory(&mut session).await;
@@ -98,16 +98,22 @@ async fn process_session(mut session: SimpleSession) {
         let thirst = gs.tavern.thirst_for_adventure_sec;
 
         if gs.character.inventory.count_free_slots() == 0 {
-            log::log(&session, "FULL INVENTORY, SKIPPING EXPEDITIONS");
+            log::log(&session, "FULL INVENTORY, SKIPPING EXPEDITIONS, DUNGEONS AND DAILY REWARDS");
 
             wait_between_actions().await;
 
             continue;
         }
 
-        let expedition_running = gs.tavern.current_action == CurrentAction::Expedition;
+        daily(&mut session).await;
 
-        if (thirst > 0 || expedition_running) && hour >= constant::EXPEDITION_START_HOUR {
+        dungeon(&mut session).await;
+
+        let Some(gs) = session.game_state() else {
+            continue;
+        };
+
+        if gs.tavern.current_action == CurrentAction::Expedition || thirst > 0 {
             expedition(&mut session).await;
         }
 
