@@ -28,5 +28,5 @@ pub(crate) fn log(session: &SimpleSession, message: &str) {
         return println!("Level {level} {class} ({name}): {message}");
     }
 
-    println!("User {} (state unpopulated): {message}", session.username());
+    println!("USER '{}' (STATE UNPOPULATED): {message}", session.username());
 }
