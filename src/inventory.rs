@@ -5,7 +5,8 @@ use rand_distr::{Distribution, Normal};
 
 use sf_api::{
     command::Command,
-    gamestate::items::{EquipmentSlot, Item, PlayerItemPosition},
+    gamestate::items::{EquipmentSlot, Item, ItemPosition},
+    gamestate::items::{ItemType, PlayerItemPosition, PotionType},
     session::SimpleSession,
 };
 
@@ -37,11 +38,26 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
             continue;
         };
 
+        let (from_pos, item_ident) = (PlayerItemPosition::from(bag_pos), item.command_ident());
+
+        if let ItemType::Potion(potion) = item.typ {
+            let is_main_attr = potion.typ == PotionType::from(gs.character.class.main_attribute());
+
+            let is_constitution = potion.typ == PotionType::Constitution;
+            let is_winged_bottle = potion.typ == PotionType::EternalLife;
+
+            if !is_main_attr && !is_constitution && !is_winged_bottle {
+                return Some(Command::SellShop { item_pos: from_pos, item_ident });
+            }
+
+            if is_main_attr || is_constitution | is_winged_bottle {
+                return Some(Command::UsePotion { from: ItemPosition::from(from_pos), item_ident });
+            }
+        }
+
         let Some(slot) = item.typ.equipment_slot() else {
             continue;
         };
-
-        let (from_pos, item_ident) = (PlayerItemPosition::from(bag_pos), item.command_ident());
 
         if should_equip(session, item, slot) {
             return Some(Command::Equip { from_pos, to_slot: slot, item_ident });
@@ -74,6 +90,10 @@ pub async fn inventory(session: &mut SimpleSession) {
 
             Command::SellShop { .. } => {
                 log(session, "SELLING WEAKER/INCOMPATIBLE ITEM");
+            }
+
+            Command::UsePotion { .. } => {
+                log(session, "DRINKING POTION");
             }
 
             _ => {}
