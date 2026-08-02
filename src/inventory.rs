@@ -12,19 +12,25 @@ use sf_api::{
 use crate::log::log;
 
 fn should_equip(session: &SimpleSession, item: &Item, slot: EquipmentSlot) -> bool {
-    let attr = session.game_state().unwrap().character.class.main_attribute();
+    let Some(gs) = session.game_state() else {
+        return false;
+    };
 
-    if !item.can_be_equipped_by(session.game_state().unwrap().character.class) {
+    let attr = gs.character.class.main_attribute();
+
+    if !item.can_be_equipped_by(gs.character.class) {
         return false;
     }
 
-    let equipped = session.game_state().unwrap().character.equipment.0[slot].as_ref();
+    let equipped = gs.character.equipment.0[slot].as_ref();
 
     item.attributes[attr] > equipped.map(|eq| eq.attributes[attr]).unwrap_or(0)
 }
 
 fn inventory_next(session: &SimpleSession) -> Option<Command> {
-    let gs = session.game_state().unwrap();
+    let Some(gs) = session.game_state() else {
+        return None;
+    };
 
     for (bag_pos, slot) in gs.character.inventory.iter() {
         let Some(item) = slot else {

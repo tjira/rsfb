@@ -72,7 +72,13 @@ async fn process_session(mut session: SimpleSession) {
         let hour = chrono::Local::now().hour();
 
         if session.game_state().is_none() {
-            log::log(&session, "GAME STATE IS NOT POPULATED");
+            log::log(&session, "GAME STATE IS NOT POPULATED, TRYING TO UPDATE");
+
+            if let Err(err) = session.send_command(Command::Update).await {
+                log::log(&session, &format!("FAILED TO UPDATE SESSION ({:?})", err));
+
+                wait_between_actions().await;
+            }
 
             continue;
         }
@@ -83,9 +89,13 @@ async fn process_session(mut session: SimpleSession) {
 
         inventory(&mut session).await;
 
-        let tavern_action = session.game_state().unwrap().tavern.current_action;
+        let Some(gs) = session.game_state() else {
+            continue;
+        };
 
-        if session.game_state().unwrap().character.inventory.count_free_slots() == 0 {
+        let tavern_action = gs.tavern.current_action;
+
+        if gs.character.inventory.count_free_slots() == 0 {
             log::log(&session, "FULL INVENTORY, SKIPPING EXPEDITIONS");
 
             wait_between_actions().await;

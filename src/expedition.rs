@@ -16,9 +16,7 @@ fn expedition_next(session: &mut SimpleSession) -> Option<Command> {
         return None;
     };
 
-    let exp = &gs.tavern.expeditions;
-
-    if let Some(stage) = exp.active().map(|a| a.current_stage()) {
+    if let Some(stage) = gs.tavern.expeditions.active().map(|a| a.current_stage()) {
         match stage {
             ExpeditionStage::Boss(_) => {
                 log(session, "FIGHTING BOSS IN EXPEDITION");

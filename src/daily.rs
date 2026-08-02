@@ -11,31 +11,37 @@ use sf_api::{
 use crate::log::log;
 
 fn daily_next(session: &SimpleSession) -> Option<Command> {
+    let Some(gs) = session.game_state() else {
+        return None;
+    };
+
     let now = chrono::Local::now();
 
-    if let Some(next) = session.game_state().unwrap().specials.calendar.next_possible {
+    if let Some(next) = gs.specials.calendar.next_possible {
         if now >= next {
             return Some(Command::CollectCalendar);
         }
     }
 
-    if session.game_state().unwrap().specials.advent_calendar.is_some() {
+    if gs.specials.advent_calendar.is_some() {
         return Some(Command::CollectAdventsCalendar);
     }
 
     for i in 0..3 {
-        if session.game_state().unwrap().specials.tasks.daily.can_open_chest(i) {
+        let chest = &gs.specials.tasks.daily.rewards[i];
+        if chest.required_points > 0 && gs.specials.tasks.daily.can_open_chest(i) {
             return Some(Command::CollectDailyQuestReward { pos: i });
         }
     }
 
     for i in 0..3 {
-        if session.game_state().unwrap().specials.tasks.event.can_open_chest(i) {
+        let chest = &gs.specials.tasks.event.rewards[i];
+        if chest.required_points > 0 && gs.specials.tasks.event.can_open_chest(i) {
             return Some(Command::CollectEventTaskReward { pos: i });
         }
     }
 
-    if let Some(next) = session.game_state().unwrap().specials.wheel.next_free_spin {
+    if let Some(next) = gs.specials.wheel.next_free_spin {
         if now >= next {
             return Some(Command::SpinWheelOfFortune { payment: FortunePayment::FreeTurn });
         }
