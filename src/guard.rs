@@ -21,13 +21,6 @@ fn guard_next(session: &SimpleSession) -> Option<Command> {
                 return Some(Command::FinishWork);
             }
 
-            let remaining = busy_until.signed_duration_since(now).num_seconds().max(0);
-
-            let mins = remaining / 60;
-            let secs = remaining % 60;
-
-            log(session, &format!("WORKING CITY GUARD, BUSY FOR {mins}M {secs}S"));
-
             None
         }
 
@@ -61,7 +54,7 @@ fn guard_next(session: &SimpleSession) -> Option<Command> {
     }
 }
 
-pub async fn guard(session: &mut SimpleSession) -> bool {
+pub async fn guard(session: &mut SimpleSession) {
     while let Some(cmd) = guard_next(session) {
         match &cmd {
             Command::FinishWork => {
@@ -83,14 +76,6 @@ pub async fn guard(session: &mut SimpleSession) -> bool {
 
         wait_between_actions().await;
     }
-
-    if let Some(gs) = session.game_state() {
-        if let CurrentAction::CityGuard { hours: _, busy_until } = gs.tavern.current_action {
-            return Local::now() < busy_until;
-        }
-    }
-
-    false
 }
 
 async fn wait_between_actions() {

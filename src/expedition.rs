@@ -36,18 +36,7 @@ fn expedition_next(session: &mut SimpleSession) -> Option<Command> {
                 return Some(Command::ExpeditionPickEncounter { pos: 0 });
             }
 
-            ExpeditionStage::Waiting { busy_until, .. } => {
-                let now = chrono::Local::now();
-
-                let total_secs = busy_until.signed_duration_since(now).num_seconds().max(0);
-
-                let mins = total_secs / 60;
-                let secs = total_secs % 60;
-
-                let message = format!("EXPEDITION IN PROGRESS, BUSY FOR {mins}M {secs}S");
-
-                log(session, &message);
-
+            ExpeditionStage::Waiting { .. } => {
                 return None;
             }
 

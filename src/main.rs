@@ -87,11 +87,7 @@ async fn process_session(mut session: SimpleSession) {
             continue;
         }
 
-        if guard(&mut session).await {
-            wait_between_actions().await;
-
-            continue;
-        }
+        guard(&mut session).await;
 
         if hour < constant::EXPEDITION_START_HOUR {
             wait_between_actions().await;
