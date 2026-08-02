@@ -18,15 +18,15 @@ fn get_class_name(class: Class) -> &'static str {
 }
 
 pub(crate) fn log(session: &SimpleSession, message: &str) {
-    let Some(gs) = session.game_state() else {
-        return;
-    };
+    if let Some(gs) = session.game_state() {
+        let (name, level, class) = {
+            let (name, level) = (gs.character.name.clone(), gs.character.level);
 
-    let (name, level, class) = {
-        let (name, level) = (gs.character.name.clone(), gs.character.level);
+            (name, level, get_class_name(gs.character.class))
+        };
 
-        (name, level, get_class_name(gs.character.class))
-    };
+        return println!("Level {level} {class} ({name}): {message}");
+    }
 
-    println!("Level {level} {class} ({name}): {message}");
+    println!("User {} (state unpopulated): {message}", session.username());
 }

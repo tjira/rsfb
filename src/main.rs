@@ -83,9 +83,11 @@ async fn process_session(mut session: SimpleSession) {
             continue;
         }
 
-        let thirst = session.game_state().unwrap().tavern.thirst_for_adventure_sec;
-
         daily(&mut session).await;
+
+        if session.game_state().is_none() {
+            continue;
+        }
 
         inventory(&mut session).await;
 
@@ -93,7 +95,7 @@ async fn process_session(mut session: SimpleSession) {
             continue;
         };
 
-        let tavern_action = gs.tavern.current_action;
+        let thirst = gs.tavern.thirst_for_adventure_sec;
 
         if gs.character.inventory.count_free_slots() == 0 {
             log::log(&session, "FULL INVENTORY, SKIPPING EXPEDITIONS");
@@ -103,7 +105,7 @@ async fn process_session(mut session: SimpleSession) {
             continue;
         }
 
-        let expedition_running = tavern_action == CurrentAction::Expedition;
+        let expedition_running = gs.tavern.current_action == CurrentAction::Expedition;
 
         if (thirst > 0 || expedition_running) && hour >= constant::EXPEDITION_START_HOUR {
             expedition(&mut session).await;
