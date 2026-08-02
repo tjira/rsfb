@@ -1,1 +1,2 @@
 pub const EXPEDITION_START_HOUR: u32 = 7;
+pub const EPIC_LEGENDARY_MULTIPLIER: f64 = 1.5;

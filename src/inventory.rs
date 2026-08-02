@@ -12,20 +12,35 @@ use sf_api::{
 
 use crate::log::log;
 
-fn should_equip(session: &SimpleSession, item: &Item, slot: EquipmentSlot) -> bool {
+fn should_equip(session: &SimpleSession, it: &Item, slot: EquipmentSlot) -> bool {
     let Some(gs) = session.game_state() else {
         return false;
     };
 
     let attr = gs.character.class.main_attribute();
 
-    if !item.can_be_equipped_by(gs.character.class) {
+    if !it.can_be_equipped_by(gs.character.class) {
         return false;
     }
 
-    let equipped = gs.character.equipment.0[slot].as_ref();
+    let Some(eq) = gs.character.equipment.0[slot].as_ref() else {
+        return true;
+    };
 
-    item.attributes[attr] > equipped.map(|eq| eq.attributes[attr]).unwrap_or(0)
+    let (a_old, a_new) = (eq.attributes[attr] as f64, it.attributes[attr] as f64);
+
+    let new_is_special = it.is_epic() || it.is_legendary();
+    let old_is_special = eq.is_epic() || eq.is_legendary();
+
+    if !new_is_special && old_is_special {
+        return a_new > a_old * crate::constant::EPIC_LEGENDARY_MULTIPLIER
+    }
+
+    if new_is_special && !old_is_special {
+        return a_old < a_new * crate::constant::EPIC_LEGENDARY_MULTIPLIER
+    }
+
+    a_new > a_old
 }
 
 fn inventory_next(session: &SimpleSession) -> Option<Command> {
