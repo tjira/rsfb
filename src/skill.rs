@@ -34,10 +34,8 @@ fn skill_next(session: &SimpleSession) -> Option<Command> {
     let scores = [
         (main_attr, character.attribute_basis[main_attr] as f64 / 100.0),
         (constitut, character.attribute_basis[constitut] as f64 / 080.0),
-
         (other1, character.attribute_basis[other1] as f64 / 10.0),
         (other2, character.attribute_basis[other2] as f64 / 10.0),
-
         (luck, character.attribute_basis[luck] as f64 / 40.0),
     ];
 

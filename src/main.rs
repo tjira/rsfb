@@ -8,6 +8,7 @@ use rand_distr::{Distribution, Normal};
 
 use sf_api::{command::Command, gamestate::tavern::CurrentAction, session::SimpleSession};
 
+mod arena;
 mod constant;
 mod daily;
 mod dungeon;
@@ -18,6 +19,7 @@ mod inventory;
 mod log;
 mod skill;
 
+use arena::arena;
 use daily::daily;
 use dungeon::dungeon;
 use expedition::expedition;
@@ -99,8 +101,6 @@ async fn process_session(mut session: SimpleSession) {
             continue;
         };
 
-        let thirst = gs.tavern.thirst_for_adventure_sec;
-
         if gs.character.inventory.count_free_slots() == 0 {
             log::log(&session, "FULL INVENTORY, SKIPPING EXPEDITIONS, DUNGEONS AND DAILY REWARDS");
 
@@ -115,9 +115,13 @@ async fn process_session(mut session: SimpleSession) {
 
         dungeon(&mut session).await;
 
+        arena(&mut session).await;
+
         let Some(gs) = session.game_state() else {
             continue;
         };
+
+        let thirst = gs.tavern.thirst_for_adventure_sec;
 
         if gs.tavern.current_action == CurrentAction::Expedition || thirst > 0 {
             expedition(&mut session).await;
