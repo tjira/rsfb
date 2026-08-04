@@ -13,6 +13,7 @@ mod daily;
 mod dungeon;
 mod expedition;
 mod guard;
+mod guild;
 mod inventory;
 mod log;
 
@@ -20,6 +21,7 @@ use daily::daily;
 use dungeon::dungeon;
 use expedition::expedition;
 use guard::guard;
+use guild::guild;
 use inventory::inventory;
 
 #[tokio::main]
@@ -106,6 +108,7 @@ async fn process_session(mut session: SimpleSession) {
         }
 
         daily(&mut session).await;
+        guild(&mut session).await;
 
         dungeon(&mut session).await;
 
