@@ -62,11 +62,11 @@ pub async fn daily(session: &mut SimpleSession) {
             }
 
             Command::CollectDailyQuestReward { pos } => {
-                log(session, &format!("COLLECTING DAILY TASK CHEST No. {}", pos + 1));
+                log(session, &format!("COLLECTING DAILY TASK CHEST NO. {}", pos + 1));
             }
 
             Command::CollectEventTaskReward { pos } => {
-                log(session, &format!("COLLECTING EVENT TASK CHEST No. {}", pos + 1));
+                log(session, &format!("COLLECTING EVENT TASK CHEST NO. {}", pos + 1));
             }
 
             Command::SpinWheelOfFortune { payment: FortunePayment::FreeTurn } => {
@@ -89,7 +89,7 @@ pub async fn daily(session: &mut SimpleSession) {
 }
 
 async fn wait_between_actions() {
-    let (mean, std, min, max): (f64, f64, f64, f64) = (2000.0, 1000.0, 500.0, 3500.0);
+    let (mean, std, min, max): (f64, f64, f64, f64) = (2800.0, 1000.0, 1000.0, 6000.0);
 
     let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
 

@@ -93,7 +93,7 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
 }
 
 async fn wait_between_actions() {
-    let (mean, std, min, max): (f64, f64, f64, f64) = (2000.0, 1000.0, 500.0, 3500.0);
+    let (mean, std, min, max): (f64, f64, f64, f64) = (2800.0, 1000.0, 1000.0, 6000.0);
 
     let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
 

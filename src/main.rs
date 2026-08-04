@@ -132,7 +132,7 @@ async fn process_session(mut session: SimpleSession) {
 }
 
 async fn wait_between_actions() {
-    let (mean, std, min, max): (f64, f64, f64, f64) = (10000.0, 100.0, 5000.0, 15000.0);
+    let (mean, std, min, max): (f64, f64, f64, f64) = (10000.0, 1200.0, 8000.0, 15000.0);
 
     let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
 

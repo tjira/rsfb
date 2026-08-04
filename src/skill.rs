@@ -82,7 +82,7 @@ pub async fn skill(session: &mut SimpleSession) {
 }
 
 async fn wait_between_actions() {
-    let (mean, std, min, max): (f64, f64, f64, f64) = (500.0, 100.0, 250.0, 750.0);
+    let (mean, std, min, max): (f64, f64, f64, f64) = (800.0, 300.0, 400.0, 1800.0);
 
     let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
 

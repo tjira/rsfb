@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
-use rand::thread_rng;
+use rand::{Rng, thread_rng};
 use rand_distr::{Distribution, Normal};
 
 use sf_api::{
@@ -34,10 +34,16 @@ fn expedition_next(session: &mut SimpleSession) -> Option<Command> {
                 return Some(Command::ExpeditionPickReward { pos: 0 });
             }
 
-            ExpeditionStage::Encounters(encounters) if !encounters.is_empty() => {
-                log(session, "PICKING ENCOUNTER IN EXPEDITION");
+            ExpeditionStage::Encounters(encs) if !encs.is_empty() => {
+                let (count, pos) = (encs.len(), rand::thread_rng().gen_range(0..encs.len()));
 
-                return Some(Command::ExpeditionPickEncounter { pos: 0 });
+                let i = pos + 1;
+
+                let message = format!("PICKING ENCOUNTER {i} OUT OF {} IN EXPEDITION", count);
+
+                log(session, &message);
+
+                return Some(Command::ExpeditionPickEncounter { pos });
             }
 
             ExpeditionStage::Waiting { busy_until, .. } => {
@@ -131,7 +137,7 @@ fn get_last_wait(username: &str) -> i64 {
 }
 
 async fn wait_between_actions() {
-    let (mean, std, min, max): (f64, f64, f64, f64) = (2000.0, 1000.0, 500.0, 3500.0);
+    let (mean, std, min, max): (f64, f64, f64, f64) = (3500.0, 1500.0, 1200.0, 8000.0);
 
     let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
 
