@@ -18,6 +18,8 @@ fn get_class_name(class: Class) -> &'static str {
 }
 
 pub(crate) fn log(session: &SimpleSession, message: &str) {
+    let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
+
     if let Some(gs) = session.game_state() {
         let (name, level, class) = {
             let (name, level) = (gs.character.name.clone(), gs.character.level);
@@ -25,8 +27,8 @@ pub(crate) fn log(session: &SimpleSession, message: &str) {
             (name, level, get_class_name(gs.character.class))
         };
 
-        return println!("Level {level} {class} ({name}): {message}");
+        return println!("[{timestamp}] Level {level} {class} ({name}): {message}");
     }
 
-    println!("USER '{}' (STATE UNPOPULATED): {message}", session.username());
+    println!("[{timestamp}] USER '{}' (STATE UNPOPULATED): {message}", session.username());
 }

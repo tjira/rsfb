@@ -75,14 +75,10 @@ async fn process_session(mut session: SimpleSession) {
     loop {
         let hour = chrono::Local::now().hour();
 
-        if session.game_state().is_none() {
-            log::log(&session, "GAME STATE IS NOT POPULATED, TRYING TO UPDATE");
+        if let Err(err) = session.send_command(Command::Update).await {
+            log::log(&session, &format!("FAILED TO UPDATE SESSION ({:?})", err));
 
-            if let Err(err) = session.send_command(Command::Update).await {
-                log::log(&session, &format!("FAILED TO UPDATE SESSION ({:?})", err));
-
-                wait_between_actions().await;
-            }
+            wait_between_actions().await;
 
             continue;
         }
@@ -126,7 +122,7 @@ async fn process_session(mut session: SimpleSession) {
 }
 
 async fn wait_between_actions() {
-    let (mean, std, min, max): (f64, f64, f64, f64) = (10000.0, 1000.0, 5000.0, 15000.0);
+    let (mean, std, min, max): (f64, f64, f64, f64) = (10000.0, 100.0, 5000.0, 15000.0);
 
     let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
 

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
 use rand::thread_rng;
@@ -10,6 +12,8 @@ use sf_api::{
 };
 
 use crate::log::log;
+
+static LAST_LOGGED_WAITS: OnceLock<Mutex<HashMap<String, i64>>> = OnceLock::new();
 
 fn expedition_next(session: &mut SimpleSession) -> Option<Command> {
     let Some(gs) = session.game_state() else {
@@ -36,7 +40,24 @@ fn expedition_next(session: &mut SimpleSession) -> Option<Command> {
                 return Some(Command::ExpeditionPickEncounter { pos: 0 });
             }
 
-            ExpeditionStage::Waiting { .. } => {
+            ExpeditionStage::Waiting { busy_until, .. } => {
+                let timestamp = busy_until.timestamp();
+
+                if (timestamp - get_last_wait(session.username())).abs() > 15 {
+                    get_waits_map().insert(session.username().to_string(), timestamp);
+
+                    let remaining = (busy_until - chrono::Local::now()).num_seconds().max(0);
+
+                    let mins = remaining / 60;
+                    let secs = remaining % 60;
+
+                    let tf = busy_until.format("%H:%M:%S");
+
+                    let message = format!("EXPEDITION WAITING {mins}:{secs:02} UNTIL {tf}");
+
+                    log(session, &message);
+                }
+
                 return None;
             }
 
@@ -99,6 +120,14 @@ pub async fn expedition(session: &mut SimpleSession) {
 
         wait_between_actions().await;
     }
+}
+
+fn get_waits_map() -> std::sync::MutexGuard<'static, HashMap<String, i64>> {
+    LAST_LOGGED_WAITS.get_or_init(|| Mutex::new(HashMap::new())).lock().unwrap()
+}
+
+fn get_last_wait(username: &str) -> i64 {
+    get_waits_map().get(username).copied().unwrap_or(0)
 }
 
 async fn wait_between_actions() {
