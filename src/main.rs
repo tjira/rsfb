@@ -16,6 +16,7 @@ mod guard;
 mod guild;
 mod inventory;
 mod log;
+mod skill;
 
 use daily::daily;
 use dungeon::dungeon;
@@ -23,6 +24,7 @@ use expedition::expedition;
 use guard::guard;
 use guild::guild;
 use inventory::inventory;
+use skill::skill;
 
 #[tokio::main]
 async fn main() -> Result<(), sf_api::error::SFError> {
@@ -109,6 +111,7 @@ async fn process_session(mut session: SimpleSession) {
 
         daily(&mut session).await;
         guild(&mut session).await;
+        skill(&mut session).await;
 
         dungeon(&mut session).await;
 
