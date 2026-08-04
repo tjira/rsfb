@@ -1,6 +1,6 @@
 use sf_api::{gamestate::character::Class, session::SimpleSession};
 
-fn get_class_name(class: Class) -> &'static str {
+pub(crate) fn get_class_name(class: Class) -> &'static str {
     match class {
         Class::Assassin => "Assassin",
         Class::Bard => "Bard",
