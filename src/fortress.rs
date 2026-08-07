@@ -82,7 +82,23 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
 
 pub async fn fortress(session: &mut SimpleSession) {
     if let Some(gs) = session.game_state() {
-        if gs.character.level < 25 || gs.fortress.is_none() {
+        if gs.character.level < 25 {
+            return;
+        }
+
+        let needs_initialization = match &gs.fortress {
+            Some(fortress) => fortress.building_max_lvl == 0,
+
+            None => true,
+        };
+
+        if needs_initialization {
+            log(session, "FORTRESS UNLOCKED - INITIALIZING STATE");
+
+            let cmd = Command::FortressBuild { f_type: FortressBuildingType::Fortress };
+
+            let _ = session.send_command(cmd).await;
+
             return;
         }
     }

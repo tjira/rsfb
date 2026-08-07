@@ -23,7 +23,7 @@ fn dungeon_next(session: &SimpleSession) -> Option<Command> {
     }
 
     if let Some(next_fight) = gs.dungeons.next_free_fight {
-        if Local::now() < next_fight {
+        if Local::now() < next_fight + chrono::Duration::seconds(5) {
             return None;
         }
     }
@@ -84,7 +84,7 @@ pub async fn dungeon(session: &mut SimpleSession) {
         if let Some(next_fight) = gs.dungeons.next_free_fight {
             let portal_can_fight = gs.dungeons.portal.as_ref().is_some_and(|p| p.can_fight);
 
-            if Local::now() < next_fight && !portal_can_fight {
+            if Local::now() < next_fight + chrono::Duration::seconds(5) && !portal_can_fight {
                 return;
             }
         }

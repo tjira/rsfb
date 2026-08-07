@@ -14,7 +14,7 @@ fn arena_next(session: &SimpleSession) -> Option<Command> {
     };
 
     if let Some(next_fight) = gs.arena.next_free_fight {
-        if Local::now() < next_fight {
+        if Local::now() < next_fight + chrono::Duration::seconds(5) {
             return None;
         }
     }
@@ -59,7 +59,7 @@ fn arena_next(session: &SimpleSession) -> Option<Command> {
 pub async fn arena(session: &mut SimpleSession) {
     if let Some(gs) = session.game_state() {
         if let Some(next_fight) = gs.arena.next_free_fight {
-            if Local::now() < next_fight {
+            if Local::now() < next_fight + chrono::Duration::seconds(5) {
                 return;
             }
         }
