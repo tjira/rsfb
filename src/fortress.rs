@@ -83,7 +83,9 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
 
         let can_w = fortress.building_upgrade.target != Some(FortressBuildingType::WoodcuttersHut);
 
-        if get_collectable(wood) > 0 && wood.current < wood.limit && can_w {
+        let w_enough = get_collectable(wood) >= wood.production.limit / 2;
+
+        if w_enough && wood.production.limit > 0 && wood.current < wood.limit && can_w {
             return Some(Command::FortressGather { resource: FortressResourceType::Wood });
         }
 
@@ -91,7 +93,9 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
 
         let can_stone = fortress.building_upgrade.target != Some(FortressBuildingType::Quarry);
 
-        if get_collectable(stone) > 0 && stone.current < stone.limit && can_stone {
+        let s_enough = get_collectable(stone) >= stone.production.limit / 2;
+
+        if s_enough && stone.production.limit > 0 && stone.current < stone.limit && can_stone {
             return Some(Command::FortressGather { resource: FortressResourceType::Stone });
         }
 
@@ -99,7 +103,9 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
 
         let can_exp = fortress.building_upgrade.target != Some(FortressBuildingType::Academy);
 
-        if get_collectable(exp) > 0 && can_exp {
+        let e_enough = get_collectable(exp) >= exp.production.limit / 2;
+
+        if e_enough && exp.production.limit > 0 && can_exp {
             return Some(Command::FortressGather { resource: FortressResourceType::Experience });
         }
     }
