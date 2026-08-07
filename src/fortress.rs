@@ -35,6 +35,18 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
+    let gem_mine = fortress.buildings.get(FortressBuildingType::GemMine);
+
+    if gem_mine.level > 0 {
+        if let Some(finish) = fortress.gem_search.finish {
+            if Local::now() >= finish {
+                if gs.character.inventory.count_free_slots() > 0 {
+                    return Some(Command::FortressGemStoneSearchFinish { mushrooms: 0 });
+                }
+            }
+        }
+    }
+
     let get_collectable = |resource: &sf_api::gamestate::fortress::FortressResource| {
         let last_collectable = resource.production.last_collectable;
 
@@ -86,6 +98,8 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
+    let is_gem_searching = fortress.gem_search.finish.is_some();
+
     if fortress.building_upgrade.target.is_none() {
         let mut buildable = Vec::new();
 
@@ -101,6 +115,24 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
 
         if let Some((best_building, _)) = buildable.into_iter().min_by_key(|&(_, lvl)| lvl) {
             return Some(Command::FortressBuild { f_type: best_building });
+        }
+    }
+
+    let is_gem_upgrading = fortress.building_upgrade.target == Some(FortressBuildingType::GemMine);
+
+    if gem_mine.level > 0 && !is_gem_searching && !is_gem_upgrading {
+        let cost = fortress.gem_search.cost;
+
+        let wood_c = fortress.resources.get(FortressResourceType::Wood);
+        let stone = fortress.resources.get(FortressResourceType::Stone);
+
+        let ew = cost.wood <= wood_c.current;
+        let es = cost.stone <= stone.current;
+
+        let eg = cost.silver <= gs.character.silver;
+
+        if ew && es && eg {
+            return Some(Command::FortressGemStoneSearch);
         }
     }
 
@@ -142,6 +174,14 @@ pub async fn fortress(session: &mut SimpleSession) {
 
             Command::FortressBuild { f_type } => {
                 log(session, &format!("STARTING BUILDING '{:?}' IN FORTRESS", f_type));
+            }
+
+            Command::FortressGemStoneSearch => {
+                log(session, "STARTING GEM SEARCH IN GEM MINE");
+            }
+
+            Command::FortressGemStoneSearchFinish { .. } => {
+                log(session, "FINISHING GEM SEARCH IN GEM MINE");
             }
 
             _ => {}
