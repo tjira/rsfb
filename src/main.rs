@@ -246,6 +246,8 @@ async fn process_session(mut session: SimpleSession, shared_map: SharedStatusMap
 
         inventory(&mut session).await;
 
+        fortress(&mut session).await;
+
         let Some(gs) = session.game_state() else {
             continue;
         };
@@ -261,8 +263,6 @@ async fn process_session(mut session: SimpleSession, shared_map: SharedStatusMap
         daily(&mut session).await;
         guild(&mut session).await;
         skill(&mut session).await;
-
-        fortress(&mut session).await;
 
         dungeon(&mut session).await;
 

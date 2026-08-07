@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+use std::sync::Mutex;
 use std::time::Duration;
 
 use chrono::Local;
@@ -13,6 +15,8 @@ use sf_api::{
 };
 
 use crate::log::log;
+
+static COLLECTED_ON_STARTUP: Mutex<Option<HashSet<String>>> = Mutex::new(None);
 
 fn fortress_next(session: &SimpleSession) -> Option<Command> {
     let Some(gs) = session.game_state() else {
@@ -31,15 +35,21 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
-    let is_collect_time = fortress.last_collectable_updated.map_or(true, |last_updated| {
+    let is_startup = {
+        let mut startup_set = COLLECTED_ON_STARTUP.lock().unwrap();
+
+        startup_set.get_or_insert_with(HashSet::new).insert(gs.character.name.clone())
+    };
+
+    let is_collect_time = fortress.last_collectable_updated.map_or(true, |lu| {
         let (interval, window) = (chrono::Duration::minutes(30), chrono::Duration::minutes(2));
 
-        let time_since_update = Local::now() - last_updated;
+        let time_since_update = Local::now() - lu;
 
         time_since_update >= interval || time_since_update < window
     });
 
-    if is_collect_time {
+    if is_startup || is_collect_time {
         let wood = fortress.resources.get(FortressResourceType::Wood);
 
         if wood.production.last_collectable > 0 && wood.current < wood.limit {

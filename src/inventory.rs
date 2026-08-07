@@ -85,21 +85,30 @@ fn sell(s: &SimpleSession, pos: PlayerItemPosition, ii: ItemCommandIdent, item: 
         return Command::SellShop { item_pos: pos, item_ident: ii };
     };
 
-    if let Some(toilet) = gs.tavern.toilet {
-        if toilet.sacrifices_left > 0 {
-            return Command::ToiletDrop { item_pos: pos };
-        }
-    }
+    let toilet_unlocked =
+        gs.character.level >= 100 && gs.tavern.toilet.map_or(false, |t| t.aura > 0);
 
-    if let Some(witch) = &gs.witch {
-        if let Some(slot) = item.typ.equipment_slot() {
-            if witch.required_item == Some(slot) {
-                return Command::WitchDropCauldron { item_pos: pos };
+    if toilet_unlocked {
+        if let Some(toilet) = gs.tavern.toilet {
+            if toilet.sacrifices_left > 0 {
+                return Command::ToiletDrop { item_pos: pos };
             }
         }
     }
 
-    if gs.tavern.toilet.is_some() && !item.is_washed && item.typ.equipment_slot().is_some() {
+    let witch_unlocked = gs.character.level >= 66 && gs.witch.is_some();
+
+    if witch_unlocked {
+        if let Some(witch) = &gs.witch {
+            if let Some(slot) = item.typ.equipment_slot() {
+                if witch.required_item == Some(slot) {
+                    return Command::WitchDropCauldron { item_pos: pos };
+                }
+            }
+        }
+    }
+
+    if toilet_unlocked && !item.is_washed && item.typ.equipment_slot().is_some() {
         return Command::ToiletDrop { item_pos: pos };
     }
 
@@ -111,9 +120,14 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
         return None;
     };
 
-    if let Some(toilet) = gs.tavern.toilet {
-        if toilet.mana_currently >= toilet.mana_total {
-            return Some(Command::ToiletFlush);
+    let toilet_unlocked =
+        gs.character.level >= 100 && gs.tavern.toilet.map_or(false, |t| t.aura > 0);
+
+    if toilet_unlocked {
+        if let Some(toilet) = gs.tavern.toilet {
+            if toilet.mana_currently >= toilet.mana_total {
+                return Some(Command::ToiletFlush);
+            }
         }
     }
 
@@ -123,6 +137,10 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
         };
 
         let (from_pos, item_ident) = (PlayerItemPosition::from(bag_pos), item.command_ident());
+
+        if item.typ == ItemType::ToiletKey && !toilet_unlocked {
+            return Some(Command::ToiletOpen);
+        }
 
         if let ItemType::Potion(potion) = item.typ {
             let is_main_attr = potion.typ == PotionType::from(gs.character.class.main_attribute());
@@ -210,6 +228,10 @@ pub async fn inventory(session: &mut SimpleSession) {
 
             Command::WitchDropCauldron { .. } => {
                 log(session, "THROWING ITEM INTO WITCH CAULDRON");
+            }
+
+            Command::ToiletOpen => {
+                log(session, "UNLOCKING TOILET WITH KEY");
             }
 
             _ => {}
