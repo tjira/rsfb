@@ -73,9 +73,7 @@ pub async fn arena(session: &mut SimpleSession) {
 
     while let Some(cmd) = arena_next(session) {
         match &cmd {
-            Command::ViewPlayer { .. } => {
-                log(session, &format!("FETCHING ARENA OPPONENT LEVEL"));
-            }
+            Command::ViewPlayer { .. } => {}
 
             Command::Fight { name, .. } => {
                 log(session, &format!("ATTACKING '{name}' IN ARENA"));

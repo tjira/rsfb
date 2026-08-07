@@ -23,25 +23,15 @@ fn expedition_next(session: &mut SimpleSession) -> Option<Command> {
     if let Some(stage) = gs.tavern.expeditions.active().map(|a| a.current_stage()) {
         match stage {
             ExpeditionStage::Boss(_) => {
-                log(session, "FIGHTING BOSS IN EXPEDITION");
-
                 return Some(Command::ExpeditionContinue);
             }
 
             ExpeditionStage::Rewards(_) => {
-                log(session, "PICKING REWARD IN EXPEDITION");
-
                 return Some(Command::ExpeditionPickReward { pos: 0 });
             }
 
             ExpeditionStage::Encounters(encs) if !encs.is_empty() => {
-                let (count, pos) = (encs.len(), rand::thread_rng().gen_range(0..encs.len()));
-
-                let i = pos + 1;
-
-                let message = format!("PICKING ENCOUNTER {i} OUT OF {} IN EXPEDITION", count);
-
-                log(session, &message);
+                let pos = rand::thread_rng().gen_range(0..encs.len());
 
                 return Some(Command::ExpeditionPickEncounter { pos });
             }
@@ -72,15 +62,9 @@ fn expedition_next(session: &mut SimpleSession) -> Option<Command> {
     }
 
     match gs.tavern.current_action {
-        CurrentAction::Expedition => {
-            log(session, "FINISHING EXPEDITION");
+        CurrentAction::Expedition => return Some(Command::ExpeditionContinue),
 
-            return Some(Command::ExpeditionContinue);
-        }
-
-        CurrentAction::Idle => {
-            log(session, "READY TO START NEW EXPEDITION");
-        }
+        CurrentAction::Idle => {}
 
         _ => return None,
     }

@@ -24,6 +24,7 @@ mod inventory;
 mod log;
 mod mount;
 mod skill;
+mod witch;
 
 use arena::arena;
 use daily::daily;
@@ -35,6 +36,7 @@ use guild::guild;
 use inventory::inventory;
 use mount::mount;
 use skill::skill;
+use witch::witch;
 
 #[derive(Debug, Clone)]
 struct CharacterStatus {
@@ -266,6 +268,7 @@ async fn process_session(mut session: SimpleSession, shared_map: SharedStatusMap
         guild(&mut session).await;
         skill(&mut session).await;
         mount(&mut session).await;
+        witch(&mut session).await;
 
         dungeon(&mut session).await;
 
