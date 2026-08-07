@@ -35,6 +35,23 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
+    let get_collectable = |resource: &sf_api::gamestate::fortress::FortressResource| {
+        let last_collectable = resource.production.last_collectable;
+
+        let Some(lu) = fortress.last_collectable_updated else {
+            return last_collectable;
+        };
+
+        let seconds = (Local::now() - lu).num_seconds().max(0) as u64;
+        let produce = (seconds * resource.production.per_hour) / 3600;
+
+        if resource.production.limit > 0 {
+            return (last_collectable + produce).min(resource.production.limit);
+        }
+
+        return last_collectable + produce;
+    };
+
     let is_startup = {
         let mut startup_set = COLLECTED_ON_STARTUP.lock().unwrap();
 
@@ -52,19 +69,19 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
     if is_startup || is_collect_time {
         let wood = fortress.resources.get(FortressResourceType::Wood);
 
-        if wood.production.last_collectable > 0 && wood.current < wood.limit {
+        if get_collectable(wood) > 0 && wood.current < wood.limit {
             return Some(Command::FortressGather { resource: FortressResourceType::Wood });
         }
 
         let stone = fortress.resources.get(FortressResourceType::Stone);
 
-        if stone.production.last_collectable > 0 && stone.current < stone.limit {
+        if get_collectable(stone) > 0 && stone.current < stone.limit {
             return Some(Command::FortressGather { resource: FortressResourceType::Stone });
         }
 
         let exp = fortress.resources.get(FortressResourceType::Experience);
 
-        if exp.production.last_collectable > 0 {
+        if get_collectable(exp) > 0 {
             return Some(Command::FortressGather { resource: FortressResourceType::Experience });
         }
     }
