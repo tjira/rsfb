@@ -5,6 +5,8 @@ use rand_distr::{Distribution, Normal};
 
 use sf_api::{
     command::Command,
+    gamestate::character::Class,
+    gamestate::dungeons::CompanionClass,
     gamestate::items::{EquipmentSlot, Item, ItemPosition},
     gamestate::items::{ItemType, PlayerItemPosition, PotionType},
     session::SimpleSession,
@@ -24,6 +26,41 @@ fn should_equip(session: &SimpleSession, it: &Item, slot: EquipmentSlot) -> bool
     }
 
     let Some(eq) = gs.character.equipment.0[slot].as_ref() else {
+        return true;
+    };
+
+    let (a_old, a_new) = (eq.attributes[attr] as f64, it.attributes[attr] as f64);
+
+    let new_is_special = it.is_epic() || it.is_legendary();
+    let old_is_special = eq.is_epic() || eq.is_legendary();
+
+    if !new_is_special && old_is_special {
+        return a_new > a_old * crate::constant::EPIC_LEGENDARY_MULTIPLIER;
+    }
+
+    if new_is_special && !old_is_special {
+        return a_old < a_new * crate::constant::EPIC_LEGENDARY_MULTIPLIER;
+    }
+
+    a_new > a_old
+}
+
+fn s_eq_comp(session: &SimpleSession, it: &Item, slot: EquipmentSlot, cc: CompanionClass) -> bool {
+    let Some(gs) = session.game_state() else {
+        return false;
+    };
+
+    if !gs.dungeons.can_companion_equip(cc, it) {
+        return false;
+    }
+
+    let Some(ref companions) = gs.dungeons.companions else {
+        return false;
+    };
+
+    let attr = Class::from(cc).main_attribute();
+
+    let Some(eq) = companions[cc].equipment.0[slot].as_ref() else {
         return true;
     };
 
@@ -84,9 +121,17 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
             return Some(Command::Equip { from_pos, to_slot: slot, item_ident });
         }
 
-        if !should_equip(session, item, slot) {
-            return Some(Command::SellShop { item_pos: from_pos, item_ident });
+        for companion in [CompanionClass::Warrior, CompanionClass::Mage, CompanionClass::Scout] {
+            if s_eq_comp(session, item, slot, companion) {
+                let (to_slot, to_companion) = (slot, companion);
+
+                let cmd = Command::EquipCompanion { from_pos, to_slot, item_ident, to_companion };
+
+                return Some(cmd);
+            }
         }
+
+        return Some(Command::SellShop { item_pos: from_pos, item_ident });
     }
 
     None
@@ -105,6 +150,12 @@ pub async fn inventory(session: &mut SimpleSession) {
         match &cmd {
             Command::Equip { to_slot, .. } => {
                 let message = format!("EQUIPPING ITEM TO '{:?}' SLOT", to_slot);
+
+                log(session, &message);
+            }
+
+            Command::EquipCompanion { to_slot, to_companion, .. } => {
+                let message = format!("EQUIPPING '{:?}' TO '{:?}' SLOT", to_companion, to_slot);
 
                 log(session, &message);
             }
