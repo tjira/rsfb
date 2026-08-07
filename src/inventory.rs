@@ -3,12 +3,15 @@ use std::time::Duration;
 use rand::thread_rng;
 use rand_distr::{Distribution, Normal};
 
+use strum::IntoEnumIterator;
+
 use sf_api::{
-    command::Command,
+    command::{AttributeType, Command},
     gamestate::character::Class,
     gamestate::dungeons::CompanionClass,
-    gamestate::items::{EquipmentSlot, Item, ItemCommandIdent, ItemPosition},
-    gamestate::items::{ItemType, PlayerItemPosition, PotionType},
+    gamestate::items::{EquipmentSlot, GemSlot, GemType, Item},
+    gamestate::items::{ItemCommandIdent, ItemPosition, ItemType},
+    gamestate::items::{PlayerItemPosition, PotionType},
     session::SimpleSession,
 };
 
@@ -115,6 +118,30 @@ fn sell(s: &SimpleSession, pos: PlayerItemPosition, ii: ItemCommandIdent, item: 
     Command::SellShop { item_pos: pos, item_ident: ii }
 }
 
+fn matches_attr(gem_typ: GemType, attr_typ: AttributeType) -> bool {
+    if gem_typ == GemType::Strength && attr_typ == AttributeType::Strength {
+        return true;
+    }
+
+    if gem_typ == GemType::Dexterity && attr_typ == AttributeType::Dexterity {
+        return true;
+    }
+
+    if gem_typ == GemType::Intelligence && attr_typ == AttributeType::Intelligence {
+        return true;
+    }
+
+    if gem_typ == GemType::Constitution && attr_typ == AttributeType::Constitution {
+        return true;
+    }
+
+    if gem_typ == GemType::Luck && attr_typ == AttributeType::Luck {
+        return true;
+    }
+
+    false
+}
+
 fn inventory_next(session: &SimpleSession) -> Option<Command> {
     let Some(gs) = session.game_state() else {
         return None;
@@ -161,6 +188,70 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
             if (is_main_attr || is_constitution || is_winged_bottle) && !is_full {
                 return Some(Command::UsePotion { from: ItemPosition::from(from_pos), item_ident });
             }
+        }
+
+        if let ItemType::Gem(gem) = &item.typ {
+            let player_attr = gs.character.class.main_attribute();
+            let match_attrib = matches_attr(gem.typ, player_attr);
+
+            let is_elig = gem.typ == GemType::All || gem.typ == GemType::Legendary || match_attrib;
+
+            if is_elig {
+                for slot in EquipmentSlot::iter() {
+                    if let Some(eq_item) = gs.character.equipment.0[slot].as_ref() {
+                        if let Some(gem_slot) = eq_item.gem_slot {
+                            let should_insert = match gem_slot {
+                                GemSlot::Filled(inserted_gem) => gem.value > inserted_gem.value,
+
+                                GemSlot::Empty => true,
+                            };
+
+                            let to_slot = slot;
+
+                            if should_insert {
+                                return Some(Command::Equip { from_pos, to_slot, item_ident });
+                            }
+                        }
+                    }
+                }
+            }
+
+            if let Some(ref companions) = gs.dungeons.companions {
+                let comps = [CompanionClass::Warrior, CompanionClass::Mage, CompanionClass::Scout];
+
+                let make_cmd = |to_slot, to_companion| {
+                    return Command::EquipCompanion { from_pos, to_slot, item_ident, to_companion };
+                };
+
+                for comp in comps {
+                    let player_attr = Class::from(comp).main_attribute();
+                    let matches_att = matches_attr(gem.typ, player_attr);
+
+                    let (all, leg) = (gem.typ == GemType::All, gem.typ == GemType::Legendary);
+
+                    let is_eligible = all || leg || matches_att;
+
+                    if is_eligible {
+                        for slot in EquipmentSlot::iter() {
+                            if let Some(eq_item) = companions[comp].equipment.0[slot].as_ref() {
+                                if let Some(gem_slot) = eq_item.gem_slot {
+                                    let should_insert = match gem_slot {
+                                        GemSlot::Filled(ins) => gem.value > ins.value,
+
+                                        GemSlot::Empty => true,
+                                    };
+
+                                    if should_insert {
+                                        return Some(make_cmd(slot, comp));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return Some(sell(session, from_pos, item_ident, item));
         }
 
         let Some(slot) = item.typ.equipment_slot() else {
