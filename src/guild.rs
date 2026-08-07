@@ -16,12 +16,10 @@ fn guild_next(session: &SimpleSession) -> Option<Command> {
         return None;
     };
 
-    let Some(joined) = guild.joined else {
-        return None;
-    };
-
-    if Local::now() - joined <= chrono::Duration::hours(24) {
-        return None;
+    if let Some(joined) = guild.joined {
+        if Local::now() - joined <= chrono::Duration::hours(24) {
+            return None;
+        }
     }
 
     let own_member = guild.members.iter().find(|m| m.name == gs.character.name);

@@ -8,7 +8,7 @@ use sf_api::{command::Command, session::SimpleSession};
 
 use crate::log::log;
 
-fn arena_next(session: &SimpleSession) -> Option<Command> {
+fn arena_next(session: &SimpleSession, viewed_ids: &std::collections::HashSet<u32>) -> Option<Command> {
     let Some(gs) = session.game_state() else {
         return None;
     };
@@ -23,6 +23,10 @@ fn arena_next(session: &SimpleSession) -> Option<Command> {
 
     for &id in &gs.arena.enemy_ids {
         if id == 0 {
+            continue;
+        }
+
+        if viewed_ids.contains(&id) {
             continue;
         }
 
@@ -71,9 +75,15 @@ pub async fn arena(session: &mut SimpleSession) {
         return;
     }
 
-    while let Some(cmd) = arena_next(session) {
+    let mut viewed_ids = std::collections::HashSet::new();
+
+    while let Some(cmd) = arena_next(session, &viewed_ids) {
         match &cmd {
-            Command::ViewPlayer { .. } => {}
+            Command::ViewPlayer { ident } => {
+                if let Ok(id) = ident.parse::<u32>() {
+                    viewed_ids.insert(id);
+                }
+            }
 
             Command::Fight { name, .. } => {
                 log(session, &format!("ATTACKING '{name}' IN ARENA"));
