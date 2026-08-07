@@ -7,7 +7,7 @@ use sf_api::{
     command::Command,
     gamestate::character::Class,
     gamestate::dungeons::CompanionClass,
-    gamestate::items::{EquipmentSlot, Item, ItemPosition},
+    gamestate::items::{EquipmentSlot, Item, ItemCommandIdent, ItemPosition},
     gamestate::items::{ItemType, PlayerItemPosition, PotionType},
     session::SimpleSession,
 };
@@ -80,10 +80,42 @@ fn s_eq_comp(session: &SimpleSession, it: &Item, slot: EquipmentSlot, cc: Compan
     a_new > a_old
 }
 
+fn sell(s: &SimpleSession, pos: PlayerItemPosition, ii: ItemCommandIdent, item: &Item) -> Command {
+    let Some(gs) = s.game_state() else {
+        return Command::SellShop { item_pos: pos, item_ident: ii };
+    };
+
+    if let Some(toilet) = gs.tavern.toilet {
+        if toilet.sacrifices_left > 0 {
+            return Command::ToiletDrop { item_pos: pos };
+        }
+    }
+
+    if let Some(witch) = &gs.witch {
+        if let Some(slot) = item.typ.equipment_slot() {
+            if witch.required_item == Some(slot) {
+                return Command::WitchDropCauldron { item_pos: pos };
+            }
+        }
+    }
+
+    if gs.tavern.toilet.is_some() && !item.is_washed && item.typ.equipment_slot().is_some() {
+        return Command::ToiletDrop { item_pos: pos };
+    }
+
+    Command::SellShop { item_pos: pos, item_ident: ii }
+}
+
 fn inventory_next(session: &SimpleSession) -> Option<Command> {
     let Some(gs) = session.game_state() else {
         return None;
     };
+
+    if let Some(toilet) = gs.tavern.toilet {
+        if toilet.mana_currently >= toilet.mana_total {
+            return Some(Command::ToiletFlush);
+        }
+    }
 
     for (bag_pos, slot) in gs.character.inventory.iter() {
         let Some(item) = slot else {
@@ -99,7 +131,7 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
             let is_winged_bottle = potion.typ == PotionType::EternalLife;
 
             if !is_main_attr && !is_constitution && !is_winged_bottle {
-                return Some(Command::SellShop { item_pos: from_pos, item_ident });
+                return Some(sell(session, from_pos, item_ident, item));
             }
 
             let is_full = gs.character.active_potions.iter().flatten().any(|a| {
@@ -131,7 +163,7 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
             }
         }
 
-        return Some(Command::SellShop { item_pos: from_pos, item_ident });
+        return Some(sell(session, from_pos, item_ident, item));
     }
 
     None
@@ -166,6 +198,18 @@ pub async fn inventory(session: &mut SimpleSession) {
 
             Command::UsePotion { .. } => {
                 log(session, "DRINKING POTION");
+            }
+
+            Command::ToiletFlush => {
+                log(session, "FLUSHING TOILET");
+            }
+
+            Command::ToiletDrop { .. } => {
+                log(session, "THROWING ITEM INTO TOILET");
+            }
+
+            Command::WitchDropCauldron { .. } => {
+                log(session, "THROWING ITEM INTO WITCH CAULDRON");
             }
 
             _ => {}

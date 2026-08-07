@@ -17,21 +17,21 @@ mod constant;
 mod daily;
 mod dungeon;
 mod expedition;
+mod fortress;
 mod guard;
 mod guild;
 mod inventory;
 mod log;
-mod fortress;
 mod skill;
 
 use arena::arena;
 use daily::daily;
 use dungeon::dungeon;
 use expedition::expedition;
+use fortress::fortress;
 use guard::guard;
 use guild::guild;
 use inventory::inventory;
-use fortress::fortress;
 use skill::skill;
 
 #[derive(Debug, Clone)]
