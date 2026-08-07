@@ -22,6 +22,7 @@ mod guard;
 mod guild;
 mod inventory;
 mod log;
+mod mount;
 mod skill;
 
 use arena::arena;
@@ -32,6 +33,7 @@ use fortress::fortress;
 use guard::guard;
 use guild::guild;
 use inventory::inventory;
+use mount::mount;
 use skill::skill;
 
 #[derive(Debug, Clone)]
@@ -263,6 +265,7 @@ async fn process_session(mut session: SimpleSession, shared_map: SharedStatusMap
         daily(&mut session).await;
         guild(&mut session).await;
         skill(&mut session).await;
+        mount(&mut session).await;
 
         dungeon(&mut session).await;
 

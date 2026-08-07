@@ -111,10 +111,6 @@ fn sell(s: &SimpleSession, pos: PlayerItemPosition, ii: ItemCommandIdent, item: 
         }
     }
 
-    if toilet_unlocked && !item.is_washed && item.typ.equipment_slot().is_some() {
-        return Command::ToiletDrop { item_pos: pos };
-    }
-
     Command::SellShop { item_pos: pos, item_ident: ii }
 }
 
