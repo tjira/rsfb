@@ -56,7 +56,9 @@ async fn main() -> Result<(), sf_api::error::SFError> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 3 {
-        eprintln!("USAGE: {} <USERNAME> <PASSWORD>", args.first().map(|s| s.as_str()).unwrap_or("rsfb"));
+        let prog = args.first().map(|s| s.as_str()).unwrap_or("rsfb");
+
+        eprintln!("USAGE: {} <USERNAME> <PASSWORD>", prog);
 
         process::exit(1);
     }
@@ -234,7 +236,7 @@ async fn process_session(mut session: SimpleSession, shared_map: SharedStatusMap
         if let Err(err) = session.send_command(Command::Update).await {
             log::log(&session, &format!("FAILED TO UPDATE SESSION ({:?})", err));
 
-            wait_between_actions().await;
+            tokio::time::sleep(Duration::from_secs(300)).await;
 
             continue;
         }
