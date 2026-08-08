@@ -241,6 +241,22 @@ async fn process_session(mut session: SimpleSession, shared_map: SharedStatusMap
 
         update_character_status(&session, &shared_map).await;
 
+        let Some(gs) = session.game_state() else {
+            continue;
+        };
+
+        if let Some(unlockable) = gs.pending_unlocks.first().copied() {
+            log::log(&session, &format!("UNLOCKING '{:?}' FEATURE", unlockable));
+
+            if let Err(err) = session.send_command(Command::UnlockFeature { unlockable }).await {
+                log::log(&session, &format!("FAILED TO UNLOCK FEATURE ({:?})", err));
+            }
+
+            wait_between_actions().await;
+
+            continue;
+        }
+
         guard(&mut session).await;
 
         if hour < constant::EXPEDITION_START_HOUR {
