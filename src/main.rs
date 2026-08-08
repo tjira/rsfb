@@ -30,7 +30,7 @@ use arena::arena;
 use daily::daily;
 use dungeon::dungeon;
 use expedition::expedition;
-use fortress::fortress;
+use fortress::{fortress, underworld};
 use guard::guard;
 use guild::guild;
 use inventory::inventory;
@@ -268,6 +268,8 @@ async fn process_session(mut session: SimpleSession, shared_map: SharedStatusMap
         inventory(&mut session).await;
 
         fortress(&mut session).await;
+
+        underworld(&mut session).await;
 
         let Some(gs) = session.game_state() else {
             continue;
