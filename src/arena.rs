@@ -8,7 +8,7 @@ use sf_api::{command::Command, session::SimpleSession};
 
 use crate::log::log;
 
-fn arena_next(session: &SimpleSession, viewed_ids: &std::collections::HashSet<u32>) -> Option<Command> {
+fn arena_next(session: &SimpleSession, vi: &std::collections::HashSet<u32>) -> Option<Command> {
     let Some(gs) = session.game_state() else {
         return None;
     };
@@ -26,7 +26,7 @@ fn arena_next(session: &SimpleSession, viewed_ids: &std::collections::HashSet<u3
             continue;
         }
 
-        if viewed_ids.contains(&id) {
+        if vi.contains(&id) {
             continue;
         }
 

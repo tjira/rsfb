@@ -6,7 +6,7 @@ use rand_distr::{Distribution, Normal};
 use strum::IntoEnumIterator;
 
 use sf_api::{
-    command::{AttributeType, Command},
+    command::{AttributeType, BlacksmithAction, Command},
     gamestate::character::Class,
     gamestate::dungeons::CompanionClass,
     gamestate::items::{EquipmentSlot, GemSlot, GemType, Item},
@@ -271,6 +271,26 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
         return Some(sell(session, from_pos, item_ident, item));
     }
 
+    if gs.character.level >= 90 && gs.blacksmith.is_some() {
+        for slot in EquipmentSlot::iter() {
+            let item_pos = PlayerItemPosition::from(slot);
+
+            if slot == EquipmentSlot::Shield {
+                continue;
+            }
+
+            let su = BlacksmithAction::SocketUpgrade;
+
+            if let Some(eq_item) = gs.character.equipment.0[slot].as_ref() {
+                if eq_item.gem_slot.is_none() {
+                    let item_ident = eq_item.command_ident();
+
+                    return Some(Command::Blacksmith { item_pos, action: su, item_ident });
+                }
+            }
+        }
+    }
+
     None
 }
 
@@ -319,6 +339,12 @@ pub async fn inventory(session: &mut SimpleSession) {
 
             Command::ToiletOpen => {
                 log(session, "UNLOCKING TOILET WITH KEY");
+            }
+
+            Command::Blacksmith { action, item_pos, .. } => {
+                let message = format!("BLACKSMITH '{:?}' ON {} POSITION", action, item_pos);
+
+                log(session, &message);
             }
 
             _ => {}

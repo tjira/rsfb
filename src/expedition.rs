@@ -7,8 +7,8 @@ use rand_distr::{Distribution, Normal};
 
 use sf_api::{
     command::Command,
-    gamestate::tavern::{AvailableTasks, CurrentAction, ExpeditionStage},
     gamestate::rewards::RewardType,
+    gamestate::tavern::{AvailableTasks, CurrentAction, ExpeditionStage},
     session::SimpleSession,
 };
 

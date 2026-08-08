@@ -53,17 +53,16 @@ type SharedStatusMap = Arc<Mutex<HashMap<String, CharacterStatus>>>;
 
 #[tokio::main]
 async fn main() -> Result<(), sf_api::error::SFError> {
-    let username = env::var("USERNAME").unwrap_or_else(|_| {
-        eprintln!("THE 'USERNAME' ENVIRONMENT VARIABLE IS MISSING");
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() < 3 {
+        eprintln!("USAGE: {} <USERNAME> <PASSWORD>", args.first().map(|s| s.as_str()).unwrap_or("rsfb"));
 
         process::exit(1);
-    });
+    }
 
-    let password = env::var("PASSWORD").unwrap_or_else(|_| {
-        eprintln!("THE 'PASSWORD' ENVIRONMENT VARIABLE IS MISSING");
-
-        process::exit(1);
-    });
+    let username = &args[1];
+    let password = &args[2];
 
     let sessions = match SimpleSession::login_sf_account(&username, &password).await {
         Ok(sessions) => {
