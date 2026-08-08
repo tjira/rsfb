@@ -8,6 +8,7 @@ use rand_distr::{Distribution, Normal};
 use sf_api::{
     command::Command,
     gamestate::tavern::{AvailableTasks, CurrentAction, ExpeditionStage},
+    gamestate::rewards::RewardType,
     session::SimpleSession,
 };
 
@@ -26,8 +27,10 @@ fn expedition_next(session: &mut SimpleSession) -> Option<Command> {
                 return Some(Command::ExpeditionContinue);
             }
 
-            ExpeditionStage::Rewards(_) => {
-                return Some(Command::ExpeditionPickReward { pos: 0 });
+            ExpeditionStage::Rewards(rewards) => {
+                let pos = rewards.iter().position(|r| r.typ == RewardType::Mushrooms).unwrap_or(0);
+
+                return Some(Command::ExpeditionPickReward { pos });
             }
 
             ExpeditionStage::Encounters(encs) if !encs.is_empty() => {
