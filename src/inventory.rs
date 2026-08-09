@@ -11,7 +11,7 @@ use sf_api::{
     gamestate::dungeons::CompanionClass,
     gamestate::items::{EquipmentSlot, GemSlot, GemType, Item},
     gamestate::items::{ItemCommandIdent, ItemPosition, ItemType},
-    gamestate::items::{PlayerItemPosition, PotionType},
+    gamestate::items::{PlayerItemPosition, PotionType, PotionSize},
     session::SimpleSession,
 };
 
@@ -171,7 +171,9 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
             let is_constitution = potion.typ == PotionType::Constitution;
             let is_winged_bottle = potion.typ == PotionType::EternalLife;
 
-            if !is_main_attr && !is_constitution && !is_winged_bottle {
+            let is_large = potion.size == PotionSize::Large;
+
+            if (!is_main_attr && !is_constitution && !is_winged_bottle) || !is_large {
                 return Some(sell(session, from_pos, item_ident, item));
             }
 
@@ -181,7 +183,7 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
                 a.typ == potion.typ && a.expires.map_or(false, |exp| exp.timestamp() - ts >= max)
             });
 
-            if (is_main_attr || is_constitution || is_winged_bottle) && !is_full {
+            if (is_main_attr || is_constitution || is_winged_bottle) && is_large && !is_full {
                 return Some(Command::UsePotion { from: ItemPosition::from(from_pos), item_ident });
             }
         }
