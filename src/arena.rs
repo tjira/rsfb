@@ -18,6 +18,10 @@ fn arena_next(session: &SimpleSession, vi: &std::collections::HashSet<u32>) -> O
         return None;
     };
 
+    if gs.arena.fights_for_xp >= 10 {
+        return None;
+    }
+
     if let Some(next_fight) = gs.arena.next_free_fight {
         if Local::now() < next_fight + chrono::Duration::seconds(5) {
             return None;
@@ -145,6 +149,10 @@ pub async fn arena(session: &mut SimpleSession) {
     arena_manager(session).await;
 
     if let Some(gs) = session.game_state() {
+        if gs.arena.fights_for_xp >= 10 {
+            return;
+        }
+
         if let Some(next_fight) = gs.arena.next_free_fight {
             if Local::now() < next_fight + chrono::Duration::seconds(5) {
                 return;
