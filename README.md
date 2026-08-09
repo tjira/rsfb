@@ -78,13 +78,13 @@ rsfb <USERNAME> <PASSWORD>
 Upon launching, the bot will log into your account, spawn individual async threads for each of your characters, and periodically print a status table in your terminal:
 
 ```text
-+----------------------+-------+---------------+------------+-----------+----------+---------------------------+
-| CHARACTER NAME       | LEVEL | CLASS         | GOLD       | MUSHROOMS | RANK     | STATUS                    |
-+----------------------+-------+---------------+------------+-----------+----------+---------------------------+
-| Hero One             |   385 | Demon Hunter  |  412589.50 |       320 |     1420 | IDLE                      |
-| Hero Two             |   210 | Mage          |   12450.25 |        45 |     8942 | EXPEDITION                |
-| Hero Three           |   124 | Warrior       |    3402.10 |        12 |    15201 | WORKING (8H)              |
-+----------------------+-------+---------------+------------+-----------+----------+---------------------------+
++----------------+-------+--------------+------------+-----------+----------+--------------+
+| CHARACTER NAME | LEVEL | CLASS        | GOLD       | MUSHROOMS | RANK     | STATUS       |
++----------------+-------+--------------+------------+-----------+----------+--------------+
+| Hero One       |   385 | Demon Hunter |  412589.50 |       320 |     1420 | IDLE         |
+| Hero Two       |   210 | Mage         |   12450.25 |        45 |     8942 | EXPEDITION   |
+| Hero Three     |   124 | Warrior      |    3402.10 |        12 |    15201 | WORKING (8H) |
++----------------+-------+--------------+------------+-----------+----------+--------------+
 ```
 
 ## Credits
