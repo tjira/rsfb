@@ -9,7 +9,7 @@ use strum::IntoEnumIterator;
 
 use sf_api::{
     command::Command,
-    gamestate::fortress::{FortressBuildingType, FortressResourceType},
+    gamestate::fortress::{FortressBuildingType, FortressResourceType, FortressUnitType},
     gamestate::underworld::{UnderworldBuildingType, UnderworldResourceType, UnderworldUnitType},
     misc::EnumMapGet,
     session::SimpleSession,
@@ -112,6 +112,37 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
+    for unit_type in FortressUnitType::iter() {
+        let unit = fortress.units.get(unit_type);
+
+        let current_total = unit.count + unit.in_training;
+
+        if current_total < unit.limit {
+            let cost = unit.training.cost;
+
+            let wood_s = fortress.resources.get(FortressResourceType::Wood);
+            let stone = fortress.resources.get(FortressResourceType::Stone);
+
+            let mut to_train = (unit.limit - current_total) as u32;
+
+            if cost.wood > 0 {
+                to_train = to_train.min((wood_s.current / cost.wood) as u32);
+            }
+
+            if cost.stone > 0 {
+                to_train = to_train.min((stone.current / cost.stone) as u32);
+            }
+
+            if cost.silver > 0 {
+                to_train = to_train.min((gs.character.silver / cost.silver) as u32);
+            }
+
+            if to_train > 0 {
+                return Some(Command::FortressBuildUnit { unit: unit_type, count: to_train });
+            }
+        }
+    }
+
     let is_gem_searching = fortress.gem_search.finish.is_some();
 
     if fortress.building_upgrade.target.is_none() {
@@ -184,6 +215,10 @@ pub async fn fortress(session: &mut SimpleSession) {
 
             Command::FortressBuild { f_type } => {
                 log(session, &format!("STARTING BUILDING '{:?}' IN FORTRESS", f_type));
+            }
+
+            Command::FortressBuildUnit { unit, count } => {
+                log(session, &format!("TRAINING {} '{:?}' IN FORTRESS", count, unit));
             }
 
             Command::FortressGemStoneSearch => {
