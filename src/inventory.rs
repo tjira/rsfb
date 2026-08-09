@@ -99,11 +99,13 @@ fn sell(s: &SimpleSession, pos: PlayerItemPosition, ii: ItemCommandIdent, item: 
         }
     }
 
-    if let Some(blacksmith) = &gs.blacksmith {
-        if blacksmith.dismantle_left > 0 && item.typ.equipment_slot().is_some() {
-            let action = BlacksmithAction::Dismantle;
+    if gs.character.level >= 90 {
+        if let Some(blacksmith) = &gs.blacksmith {
+            if blacksmith.dismantle_left > 0 && item.typ.equipment_slot().is_some() {
+                let action = BlacksmithAction::Dismantle;
 
-            return Command::Blacksmith { item_pos: pos, action, item_ident: ii };
+                return Command::Blacksmith { item_pos: pos, action, item_ident: ii };
+            }
         }
     }
 
