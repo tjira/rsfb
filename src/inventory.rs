@@ -286,18 +286,22 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
     if gs.character.level >= 90 && gs.blacksmith.is_some() {
         let bs = gs.blacksmith.as_ref().unwrap();
 
-        if bs.metal >= 2500 && bs.arcane >= 25 {
-            for slot in EquipmentSlot::iter() {
-                let item_pos = PlayerItemPosition::from(slot);
+        for slot in EquipmentSlot::iter() {
+            let item_pos = PlayerItemPosition::from(slot);
 
-                if slot == EquipmentSlot::Shield {
-                    continue;
-                }
+            if slot == EquipmentSlot::Shield {
+                continue;
+            }
 
-                let su = BlacksmithAction::SocketUpgrade;
+            let su = BlacksmithAction::SocketUpgrade;
 
-                if let Some(eq_item) = gs.character.equipment.0[slot].as_ref() {
-                    if eq_item.gem_slot.is_none() {
+            if let Some(eq_item) = gs.character.equipment.0[slot].as_ref() {
+                if eq_item.gem_slot.is_none() {
+                    let level = eq_item.item_quality as u64;
+
+                    let (metal_cost, arcane_cost) = (level * 10, (level * 5 / 10) * 10);
+
+                    if bs.metal >= metal_cost && bs.arcane >= arcane_cost {
                         let item_ident = eq_item.command_ident();
 
                         return Some(Command::Blacksmith { item_pos, action: su, item_ident });
