@@ -6,6 +6,7 @@ pub(crate) fn get_class_name(class: Class) -> &'static str {
         Class::Bard => "Bard",
         Class::BattleMage => "Battle Mage",
         Class::Berserker => "Berserker",
+        Class::BloodWeaver => "Blood Weaver",
         Class::DemonHunter => "Demon Hunter",
         Class::Druid => "Druid",
         Class::Mage => "Mage",

@@ -1,8 +1,6 @@
 <h1 align="center">Rust Shakes & Fidget Bot</h1>
 
 <h4 align="center">
-  <a href="#features">Features</a>
-  ·
   <a href="#download">Download</a>
   ·
   <a href="#compilation">Compilation</a>
@@ -46,36 +44,34 @@ Pre-compiled binaries for various platforms are available on the [Releases](http
 
 ## Compilation
 
-To compile `rsfb` from source, you need to have the Rust toolchain (including `cargo`) installed. If you don't have it yet, you can install it from [rustup.rs](https://rustup.rs/).
+To compile `rsfb` from source, you need the Rust toolchain including `cargo` installed on your system. If you do not have it yet, you can install it from [rustup.rs](https://rustup.rs/).
 
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/tjira/rsfb.git
-    ```
+First, clone the repository.
+```bash
+git clone https://github.com/tjira/rsfb.git
+```
 
-2. Navigate to the project directory:
-    ```bash
-    cd rsfb
-    ```
+Next, navigate into the project folder.
+```bash
+cd rsfb
+```
 
-3. Build the project in release mode:
-    ```bash
-    cargo build --release
-    ```
+Then, build the project in release mode.
+```bash
+cargo build --release
+```
 
-4. The compiled executable will be available at:
-   * **Linux/macOS**: `target/release/rsfb`
-   * **Windows**: `target/release/rsfb.exe`
+Once the build is complete, you can find the compiled executable in the target release directory. For Linux and macOS users, this file is named `target/release/rsfb` while Windows users can find it at `target/release/rsfb.exe`.
 
 ## Usage
 
-Run the compiled binary from your terminal by passing your Shakes & Fidget account credentials:
+Run the compiled binary from your terminal by passing your Shakes and Fidget account credentials.
 
 ```bash
 rsfb <USERNAME> <PASSWORD>
 ```
 
-Upon launching, the bot will log into your account, spawn individual async threads for each of your characters, and periodically print a status table in your terminal:
+Upon launching, the bot will log into your account, spawn individual async threads for each of your characters, and periodically print a status table in your terminal.
 
 ```text
 +----------------+-------+--------------+------------+-----------+----------+--------------+
@@ -89,10 +85,8 @@ Upon launching, the bot will log into your account, spawn individual async threa
 
 ## Credits
 
-This project relies on the following libraries:
-
-* [sf-api](https://github.com/the-marenga/sf-api) - An API wrapper/library for Shakes & Fidget.
+This project relies on the sf-api library, which serves as an API wrapper for Shakes and Fidget.
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+This project is licensed under the MIT License. Please refer to the LICENSE file for details.
