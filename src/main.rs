@@ -23,6 +23,7 @@ mod guild;
 mod inventory;
 mod log;
 mod mount;
+mod pets;
 mod skill;
 mod witch;
 
@@ -35,6 +36,7 @@ use guard::guard;
 use guild::guild;
 use inventory::inventory;
 use mount::mount;
+use pets::pets;
 use skill::skill;
 use witch::witch;
 
@@ -288,10 +290,11 @@ async fn process_session(mut session: SimpleSession, shared_map: SharedStatusMap
         skill(&mut session).await;
         mount(&mut session).await;
         witch(&mut session).await;
+        arena(&mut session).await;
 
         dungeon(&mut session).await;
 
-        arena(&mut session).await;
+        pets(&mut session).await;
 
         let Some(gs) = session.game_state() else {
             continue;
