@@ -85,7 +85,7 @@ Upon launching, the bot will log into your account, spawn individual async threa
 
 ## Credits
 
-This project relies on the sf-api library, which serves as an API wrapper for Shakes and Fidget.
+This project relies on the [sf-api](https://github.com/the-marenga/sf-api) library, which serves as an API wrapper for Shakes and Fidget.
 
 ## License
 
