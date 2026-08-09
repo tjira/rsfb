@@ -113,6 +113,10 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
     }
 
     for unit_type in FortressUnitType::iter() {
+        if fortress.building_upgrade.target == Some(unit_type.training_building()) {
+            continue;
+        }
+
         let unit = fortress.units.get(unit_type);
 
         let current_total = unit.count + unit.in_training;
