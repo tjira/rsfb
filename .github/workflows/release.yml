@@ -12,8 +12,8 @@ jobs:
   create:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v7
 
       - name: Create GitHub Release
         uses: taiki-e/create-gh-release-action@v1
@@ -36,10 +36,10 @@ jobs:
             target: x86_64-pc-windows-msvc
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v7
 
-      - name: Install Rust toolchain
+      - name: Install Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{matrix.target}}
