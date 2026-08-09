@@ -147,6 +147,50 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
+    let smithy = fortress.buildings.get(FortressBuildingType::Smithy);
+
+    if smithy.level > 0 {
+        for unit_type in FortressUnitType::iter() {
+            let building_level = fortress.buildings.get(unit_type.training_building()).level;
+
+            if building_level > 0 {
+                let unit = fortress.units.get(unit_type);
+
+                let cost = &unit.upgrade_cost;
+
+                if cost.wood > 0 && cost.stone > 0 {
+                    let max_level = match smithy.level {
+                        00 => 000,
+                        01 => 028,
+                        02 => 030,
+                        03 => 035,
+                        04 => 040,
+                        05 => 045,
+                        06 => 050,
+                        07 => 055,
+                        08 => 062,
+                        09 => 070,
+                        10 => 077,
+
+                        lvl => 5 * lvl + 30,
+                    };
+
+                    if unit.upgrade_next_lvl <= max_level as u64 {
+                        let wood_c = fortress.resources.get(FortressResourceType::Wood);
+                        let stone = fortress.resources.get(FortressResourceType::Stone);
+
+                        let ew = cost.wood <= wood_c.current;
+                        let es = cost.stone <= stone.current;
+
+                        if ew && es && cost.silver <= gs.character.silver {
+                            return Some(Command::FortressUpgradeUnit { unit: unit_type });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     let is_gem_searching = fortress.gem_search.finish.is_some();
 
     if fortress.building_upgrade.target.is_none() {
@@ -223,6 +267,10 @@ pub async fn fortress(session: &mut SimpleSession) {
 
             Command::FortressBuildUnit { unit, count } => {
                 log(session, &format!("TRAINING {} '{:?}' IN FORTRESS", count, unit));
+            }
+
+            Command::FortressUpgradeUnit { unit } => {
+                log(session, &format!("UPGRADING UNIT '{:?}' IN SMITHY", unit));
             }
 
             Command::FortressGemStoneSearch => {
