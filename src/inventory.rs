@@ -11,7 +11,7 @@ use sf_api::{
     gamestate::dungeons::CompanionClass,
     gamestate::items::{EquipmentSlot, GemSlot, GemType, Item},
     gamestate::items::{ItemCommandIdent, ItemPosition, ItemType},
-    gamestate::items::{PlayerItemPosition, PotionType, PotionSize},
+    gamestate::items::{PlayerItemPosition, PotionSize, PotionType},
     session::SimpleSession,
 };
 
@@ -96,6 +96,14 @@ fn sell(s: &SimpleSession, pos: PlayerItemPosition, ii: ItemCommandIdent, item: 
             if toilet.sacrifices_left > 0 {
                 return Command::ToiletDrop { item_pos: pos };
             }
+        }
+    }
+
+    if let Some(blacksmith) = &gs.blacksmith {
+        if blacksmith.dismantle_left > 0 && item.typ.equipment_slot().is_some() {
+            let action = BlacksmithAction::Dismantle;
+
+            return Command::Blacksmith { item_pos: pos, action, item_ident: ii };
         }
     }
 
