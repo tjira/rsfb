@@ -372,6 +372,10 @@ fn underworld_next(session: &SimpleSession) -> Option<Command> {
 
                         return Some(Command::UnderworldAttack { player_id });
                     }
+
+                    if goblin_level < level * crate::constant::GOBLIN_LEVEL_HERO_RATIO {
+                        return None;
+                    }
                 }
 
                 return Some(Command::ViewPlayer { ident: hof_player.name.clone() });

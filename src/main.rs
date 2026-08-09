@@ -263,6 +263,8 @@ async fn process_session(mut session: SimpleSession, shared_map: SharedStatusMap
 
         if hour < constant::EXPEDITION_START_HOUR {
             wait_between_actions().await;
+
+            continue;
         }
 
         inventory(&mut session).await;
