@@ -230,8 +230,6 @@ async fn process_session(mut session: SimpleSession, shared_map: SharedStatusMap
 
     update_character_status(&session, &shared_map).await;
 
-    log::log(&session, "DOWNLOADED AND READY TO RUN");
-
     loop {
         let hour = chrono::Local::now().hour();
 

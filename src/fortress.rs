@@ -10,7 +10,7 @@ use strum::IntoEnumIterator;
 use sf_api::{
     command::Command,
     gamestate::fortress::{FortressBuildingType, FortressResourceType},
-    gamestate::underworld::{UnderworldBuildingType, UnderworldResourceType},
+    gamestate::underworld::{UnderworldBuildingType, UnderworldResourceType, UnderworldUnitType},
     misc::EnumMapGet,
     session::SimpleSession,
 };
@@ -178,10 +178,6 @@ pub async fn fortress(session: &mut SimpleSession) {
 
     while let Some(cmd) = fortress_next(session) {
         match &cmd {
-            Command::FortressBuildFinish { f_type, .. } => {
-                log(session, &format!("FINISHING '{:?}' BUILDING IN FORTRESS", f_type));
-            }
-
             Command::FortressGather { resource } => {
                 log(session, &format!("GATHERING '{:?}' FROM FORTRESS", resource));
             }
@@ -192,10 +188,6 @@ pub async fn fortress(session: &mut SimpleSession) {
 
             Command::FortressGemStoneSearch => {
                 log(session, "STARTING GEM SEARCH IN GEM MINE");
-            }
-
-            Command::FortressGemStoneSearchFinish { .. } => {
-                log(session, "FINISHING GEM SEARCH IN GEM MINE");
             }
 
             _ => {}
@@ -328,28 +320,54 @@ fn underworld_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
+    if underworld.lured_today < 5 {
+        let goblin_level = underworld.units.get(UnderworldUnitType::Goblin).level as f64;
+
+        if let Some(sugg) = underworld.lure_suggestion {
+            if let Some(hof_player) = gs.hall_of_fames.players.first() {
+                if let Some(other_player) = gs.lookup.lookup_name(&hof_player.name) {
+                    let level = other_player.level as f64;
+
+                    if goblin_level >= level * crate::constant::GOBLIN_LEVEL_HERO_RATIO {
+                        let player_id = other_player.player_id;
+
+                        return Some(Command::UnderworldAttack { player_id });
+                    }
+                }
+
+                return Some(Command::ViewPlayer { ident: hof_player.name.clone() });
+            }
+
+            return Some(Command::ViewLureSuggestion { suggestion: sugg });
+        }
+
+        return Some(Command::UpdateLureSuggestion);
+    }
+
     None
 }
 
 pub async fn underworld(session: &mut SimpleSession) {
-    if let Some(gs) = session.game_state() {
+    if let Some(gs) = session.game_state_mut() {
         if gs.underworld.is_none() {
             return;
         }
+
+        gs.hall_of_fames.players.clear();
     }
 
     while let Some(cmd) = underworld_next(session) {
         match &cmd {
-            Command::UnderworldUpgradeFinish { building, .. } => {
-                log(session, &format!("FINISHING '{:?}' BUILDING IN UNDERWORLD", building));
-            }
-
             Command::UnderworldCollect { resource } => {
                 log(session, &format!("GATHERING '{:?}' FROM UNDERWORLD", resource));
             }
 
             Command::UnderworldUpgradeStart { building, .. } => {
                 log(session, &format!("STARTING BUILDING '{:?}' IN UNDERWORLD", building));
+            }
+
+            Command::UnderworldAttack { .. } => {
+                log(session, &format!("LURING HERO INTO UNDERWORLD"));
             }
 
             _ => {}
