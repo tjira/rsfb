@@ -8,7 +8,7 @@ use rand_distr::{Distribution, Normal};
 use sf_api::{
     command::Command,
     gamestate::rewards::RewardType,
-    gamestate::tavern::{AvailableTasks, CurrentAction, ExpeditionStage},
+    gamestate::tavern::{AvailableTasks, CurrentAction, ExpeditionStage, ExpeditionSpecial},
     session::SimpleSession,
 };
 
@@ -80,7 +80,21 @@ fn expedition_next(session: &mut SimpleSession) -> Option<Command> {
         return None;
     };
 
-    let Some(task) = tasks.first() else {
+    let mut pos = 0;
+
+    for (i, task) in tasks.iter().enumerate() {
+        if task.special == Some(ExpeditionSpecial::Egg) {
+            pos = i;
+
+            break;
+        }
+
+        if task.special == Some(ExpeditionSpecial::DailyTask) {
+            pos = i;
+        }
+    }
+
+    let Some(task) = tasks.get(pos) else {
         log(session, "EXPEDITION LIST IS EMPTY");
 
         return None;
@@ -93,7 +107,7 @@ fn expedition_next(session: &mut SimpleSession) -> Option<Command> {
 
         log(session, &message);
 
-        return Some(Command::ExpeditionStart { pos: 0 });
+        return Some(Command::ExpeditionStart { pos });
     }
 
     log(session, "NOT ENOUGH THIRST FOR ADVENTURE");
