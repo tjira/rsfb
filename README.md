@@ -35,7 +35,7 @@
 </p>
 
 <p align="center">
-Lightweight asynchronous Rust bot for Shakes & Fidget automation. Designed to be robust and parallel-friendly, it manages multiple character sessions simultaneously, features human-like delay simulation, and automates daily activities, fortress upgrades, and underworld activities.
+Lightweight asynchronous Rust bot for Shakes & Fidget automation. Designed to progress the game without any human intervention, it is robust and parallel-friendly, managing multiple character sessions simultaneously. It features human-like delay simulation and automates all aspects of the game.
 </p>
 
 ## Download

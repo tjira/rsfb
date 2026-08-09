@@ -3,7 +3,12 @@ use std::time::Duration;
 use chrono::Local;
 use rand::thread_rng;
 use rand_distr::{Distribution, Normal};
-use sf_api::{command::Command, gamestate::guild::BattlesJoined, session::SimpleSession};
+
+use sf_api::{
+    command::Command,
+    gamestate::guild::{BattlesJoined, GuildSkill},
+    session::SimpleSession,
+};
 
 use crate::log::log;
 
@@ -15,6 +20,20 @@ fn guild_next(session: &SimpleSession) -> Option<Command> {
     let Some(guild) = &gs.guild else {
         return None;
     };
+
+    for skill in [GuildSkill::Treasure, GuildSkill::Instructor, GuildSkill::Pet] {
+        let cost = guild.upgrade_price[skill];
+
+        if cost.mushrooms == 0 && cost.silver <= gs.character.silver {
+            let current = match skill {
+                GuildSkill::Treasure => guild.own_treasure_skill,
+                GuildSkill::Instructor => guild.own_instructor_skill,
+                GuildSkill::Pet => guild.own_pet_lvl,
+            };
+
+            return Some(Command::GuildIncreaseSkill { skill, current });
+        }
+    }
 
     if let Some(joined) = guild.joined {
         if Local::now() - joined <= chrono::Duration::hours(24) {
@@ -88,6 +107,10 @@ pub async fn guild(session: &mut SimpleSession) {
 
             Command::GuildPortalBattle => {
                 log(session, "FIGHTING GUILD PORTAL");
+            }
+
+            Command::GuildIncreaseSkill { skill, .. } => {
+                log(session, &format!("UPGRADING '{:?}' GUILD SKILL", skill));
             }
 
             _ => {}
