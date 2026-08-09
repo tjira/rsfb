@@ -9,8 +9,20 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  create:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: taiki-e/create-gh-release-action@v1
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}
+
+  upload:
     name: ${{matrix.target}}
+    needs: create
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
@@ -32,8 +44,9 @@ jobs:
         with:
           targets: ${{matrix.target}}
 
-      - name: Build binary
-        run: cargo build --release --target ${{matrix.target}}
+      - name: Install Musl
+        if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
 
       - name: Upload Rust binary
         uses: taiki-e/upload-rust-binary-action@v1
