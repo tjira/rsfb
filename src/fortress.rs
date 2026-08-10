@@ -10,7 +10,8 @@ use strum::IntoEnumIterator;
 use sf_api::{
     command::Command,
     gamestate::fortress::{FortressBuildingType, FortressResourceType, FortressUnitType},
-    gamestate::underworld::{UnderworldBuildingType, UnderworldResourceType, UnderworldUnitType},
+    gamestate::underworld::{LureSuggestion, UnderworldUnitType},
+    gamestate::underworld::{UnderworldBuildingType, UnderworldResourceType},
     misc::EnumMapGet,
     session::SimpleSession,
 };
@@ -19,6 +20,8 @@ use crate::log::log;
 
 static FS_COLLECTED_ON_STARTUP: Mutex<Option<HashSet<String>>> = Mutex::new(None);
 static UW_COLLECTED_ON_STARTUP: Mutex<Option<HashSet<String>>> = Mutex::new(None);
+
+static LAST_LURE_CHECK: Mutex<Option<(String, LureSuggestion, u32)>> = Mutex::new(None);
 
 fn fortress_next(session: &SimpleSession) -> Option<Command> {
     let Some(gs) = session.game_state() else {
@@ -413,6 +416,18 @@ fn underworld_next(session: &SimpleSession) -> Option<Command> {
         let goblin_level = underworld.units.get(UnderworldUnitType::Goblin).level as f64;
 
         if let Some(sugg) = underworld.lure_suggestion {
+            let already_checked = {
+                let last_check = LAST_LURE_CHECK.lock().unwrap();
+
+                last_check.as_ref().map_or(false, |(name, id, lvl)| {
+                    name == &gs.character.name && *id == sugg && *lvl == goblin_level as u32
+                })
+            };
+
+            if already_checked {
+                return None;
+            }
+
             if let Some(hof_player) = gs.hall_of_fames.players.first() {
                 if let Some(other_player) = gs.lookup.lookup_name(&hof_player.name) {
                     let level = other_player.level as f64;
@@ -424,6 +439,10 @@ fn underworld_next(session: &SimpleSession) -> Option<Command> {
                     }
 
                     if goblin_level < level * crate::constant::GOBLIN_LEVEL_HERO_RATIO {
+                        let mut last_check = LAST_LURE_CHECK.lock().unwrap();
+
+                        *last_check = Some((gs.character.name.clone(), sugg, goblin_level as u32));
+
                         return None;
                     }
                 }

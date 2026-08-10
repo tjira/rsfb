@@ -51,7 +51,7 @@ fn shop_next(session: &SimpleSession) -> Option<Command> {
 
                         let should_buy = match active_pot {
                             Some(active) => {
-                                let c2 = active.size == potion.size && is_full;
+                                let c2 = active.size == potion.size && !is_full;
 
                                 active.size < potion.size || c2
                             }

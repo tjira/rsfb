@@ -254,22 +254,34 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
             let is_elig = gem.typ == GemType::All || gem.typ == GemType::Legendary || match_attrib;
 
             if is_elig {
+                let (mut best_target, mut min_filled_value) = (None, u32::MAX);
+
                 for slot in EquipmentSlot::iter() {
                     if let Some(eq_item) = gs.character.equipment.0[slot].as_ref() {
                         if let Some(gem_slot) = eq_item.gem_slot {
-                            let should_insert = match gem_slot {
-                                GemSlot::Filled(inserted_gem) => gem.value > inserted_gem.value,
+                            match gem_slot {
+                                GemSlot::Empty => {
+                                    let to_slot = slot;
 
-                                GemSlot::Empty => true,
-                            };
+                                    return Some(Command::Equip { from_pos, to_slot, item_ident });
+                                }
 
-                            let to_slot = slot;
+                                GemSlot::Filled(inserted_gem) => {
+                                    let higher_value = gem.value > inserted_gem.value;
 
-                            if should_insert {
-                                return Some(Command::Equip { from_pos, to_slot, item_ident });
+                                    if higher_value && inserted_gem.value < min_filled_value {
+                                        min_filled_value = inserted_gem.value;
+
+                                        best_target = Some(slot);
+                                    }
+                                }
                             }
                         }
                     }
+                }
+
+                if let Some(to_slot) = best_target {
+                    return Some(Command::Equip { from_pos, to_slot, item_ident });
                 }
             }
 
@@ -289,20 +301,32 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
                     let is_eligible = all || leg || matches_att;
 
                     if is_eligible {
+                        let (mut best_target, mut min_filled_value) = (None, u32::MAX);
+
                         for slot in EquipmentSlot::iter() {
                             if let Some(eq_item) = companions[comp].equipment.0[slot].as_ref() {
                                 if let Some(gem_slot) = eq_item.gem_slot {
-                                    let should_insert = match gem_slot {
-                                        GemSlot::Filled(ins) => gem.value > ins.value,
+                                    match gem_slot {
+                                        GemSlot::Empty => {
+                                            return Some(make_cmd(slot, comp));
+                                        }
 
-                                        GemSlot::Empty => true,
-                                    };
+                                        GemSlot::Filled(ins) => {
+                                            let higher_value = gem.value > ins.value;
 
-                                    if should_insert {
-                                        return Some(make_cmd(slot, comp));
+                                            if higher_value && ins.value < min_filled_value {
+                                                min_filled_value = ins.value;
+
+                                                best_target = Some(slot);
+                                            }
+                                        }
                                     }
                                 }
                             }
+                        }
+
+                        if let Some(to_slot) = best_target {
+                            return Some(make_cmd(to_slot, comp));
                         }
                     }
                 }
