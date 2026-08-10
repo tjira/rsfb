@@ -83,6 +83,24 @@ fn s_eq_comp(session: &SimpleSession, it: &Item, slot: EquipmentSlot, cc: Compan
     a_new > a_old
 }
 
+pub(crate) fn is_equippable(session: &SimpleSession, item: &Item) -> bool {
+    let Some(slot) = item.typ.equipment_slot() else {
+        return false;
+    };
+
+    if should_equip(session, item, slot) {
+        return true;
+    }
+
+    for companion in [CompanionClass::Warrior, CompanionClass::Mage, CompanionClass::Scout] {
+        if s_eq_comp(session, item, slot, companion) {
+            return true;
+        }
+    }
+
+    false
+}
+
 fn sell(s: &SimpleSession, pos: PlayerItemPosition, ii: ItemCommandIdent, item: &Item) -> Command {
     let Some(gs) = s.game_state() else {
         return Command::SellShop { item_pos: pos, item_ident: ii };
