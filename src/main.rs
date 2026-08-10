@@ -24,6 +24,7 @@ mod inventory;
 mod log;
 mod mount;
 mod pets;
+mod shop;
 mod skill;
 mod witch;
 
@@ -37,6 +38,7 @@ use guild::guild;
 use inventory::inventory;
 use mount::mount;
 use pets::pets;
+use shop::shop;
 use skill::skill;
 use witch::witch;
 
@@ -266,6 +268,8 @@ async fn process_session(mut session: SimpleSession, shared_map: SharedStatusMap
 
             continue;
         }
+
+        shop(&mut session).await;
 
         inventory(&mut session).await;
 
