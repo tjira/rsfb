@@ -182,6 +182,8 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
+    let can_sell = gs.character.inventory.count_free_slots() < 3;
+
     for (bag_pos, slot) in gs.character.inventory.iter() {
         let Some(item) = slot else {
             continue;
@@ -200,7 +202,11 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
             let is_winged_bottle = potion.typ == PotionType::EternalLife;
 
             if !is_main_attr && !is_constitution && !is_winged_bottle {
-                return Some(sell(session, from_pos, item_ident, item));
+                if can_sell {
+                    return Some(sell(session, from_pos, item_ident, item));
+                }
+
+                continue;
             }
 
             let aps = gs.character.active_potions;
@@ -216,7 +222,11 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
                     }
 
                     if ap.size > potion.size {
-                        return Some(sell(session, from_pos, item_ident, item));
+                        if can_sell {
+                            return Some(sell(session, from_pos, item_ident, item));
+                        }
+
+                        continue;
                     }
 
                     let (ts, max) = (chrono::Local::now().timestamp(), 12 * 24 * 60 * 60);
@@ -298,7 +308,11 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
                 }
             }
 
-            return Some(sell(session, from_pos, item_ident, item));
+            if can_sell {
+                return Some(sell(session, from_pos, item_ident, item));
+            }
+
+            continue;
         }
 
         let Some(slot) = item.typ.equipment_slot() else {
@@ -319,7 +333,11 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
             }
         }
 
-        return Some(sell(session, from_pos, item_ident, item));
+        if can_sell {
+            return Some(sell(session, from_pos, item_ident, item));
+        }
+
+        continue;
     }
 
     if gs.character.level >= 90 && gs.blacksmith.is_some() {
