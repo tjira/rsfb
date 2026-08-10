@@ -306,7 +306,9 @@ async fn process_session(mut session: SimpleSession, shared_map: SharedStatusMap
 
         let thirst = gs.tavern.thirst_for_adventure_sec;
 
-        if gs.tavern.current_action == CurrentAction::Expedition || thirst > 0 {
+        let can_drink_beer = expedition::can_drink_beer(&session);
+
+        if gs.tavern.current_action == CurrentAction::Expedition || thirst > 0 || can_drink_beer {
             expedition(&mut session).await;
         }
 

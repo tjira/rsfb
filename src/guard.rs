@@ -27,7 +27,7 @@ fn guard_next(session: &SimpleSession) -> Option<Command> {
         CurrentAction::Idle => {
             let thirst = gs.tavern.thirst_for_adventure_sec;
 
-            if thirst == 0 {
+            if thirst == 0 && !crate::expedition::can_drink_beer(session) {
                 let (now, start) = (Local::now(), crate::constant::EXPEDITION_START_HOUR);
 
                 if let Some(mut target) = now.date_naive().and_hms_opt(start, 0, 0) {

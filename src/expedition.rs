@@ -7,7 +7,8 @@ use rand_distr::{Distribution, Normal};
 
 use sf_api::{
     command::Command,
-    gamestate::rewards::RewardType,
+    gamestate::items::{Enchantment, EquipmentSlot},
+    gamestate::rewards::{Event, RewardType},
     gamestate::tavern::{AvailableTasks, CurrentAction, ExpeditionSpecial, ExpeditionStage},
     session::SimpleSession,
 };
@@ -90,6 +91,10 @@ fn expedition_next(session: &mut SimpleSession) -> Option<Command> {
         _ => return None,
     }
 
+    if can_drink_beer(session) {
+        return Some(Command::BuyBeer);
+    }
+
     let thirst = gs.tavern.thirst_for_adventure_sec;
 
     let AvailableTasks::Expeditions(tasks) = gs.tavern.available_tasks() else {
@@ -135,6 +140,14 @@ fn expedition_next(session: &mut SimpleSession) -> Option<Command> {
 
 pub async fn expedition(session: &mut SimpleSession) {
     while let Some(cmd) = expedition_next(session) {
+        match &cmd {
+            Command::BuyBeer => {
+                log(session, "DRINKING A FREE BEER");
+            }
+
+            _ => {}
+        }
+
         if let Err(err) = session.send_command(cmd).await {
             let message = format!("EXPEDITION SEND COMMAND ERROR: {:?}", err);
 
@@ -161,4 +174,34 @@ async fn wait_between_actions() {
     let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
 
     tokio::time::sleep(Duration::from_millis(number.clamp(min, max) as u64)).await;
+}
+
+pub fn can_drink_beer(session: &SimpleSession) -> bool {
+    let Some(gs) = session.game_state() else {
+        return false;
+    };
+
+    let ca = gs.tavern.current_action;
+
+    if ca == CurrentAction::Idle && gs.tavern.beer_drunk < gs.tavern.beer_max {
+        let event_free = gs.specials.events.active.contains(&Event::OneBeerTwoBeerFreeBeer);
+
+        let mut belt_free = false;
+
+        if gs.tavern.beer_drunk == 0 || gs.tavern.beer_drunk == 10 {
+            let belt = gs.character.equipment.0[EquipmentSlot::Belt].as_ref();
+
+            belt_free = belt.map_or(false, |i| i.enchantment == Some(Enchantment::ThirstyWanderer));
+        }
+
+        if event_free || belt_free {
+            let max_thirst = 6000 + (gs.tavern.beer_max as u32 * 1200);
+
+            if gs.tavern.thirst_for_adventure_sec + 1200 <= max_thirst {
+                return true;
+            }
+        }
+    }
+
+    false
 }
