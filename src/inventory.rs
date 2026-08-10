@@ -11,7 +11,7 @@ use sf_api::{
     gamestate::dungeons::CompanionClass,
     gamestate::items::{EquipmentSlot, GemSlot, GemType, Item},
     gamestate::items::{ItemCommandIdent, ItemPosition, ItemType},
-    gamestate::items::{PlayerItemPosition, PotionSize, PotionType},
+    gamestate::items::{PlayerItemPosition, PotionType},
     session::SimpleSession,
 };
 
@@ -199,20 +199,41 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
             let is_constitution = potion.typ == PotionType::Constitution;
             let is_winged_bottle = potion.typ == PotionType::EternalLife;
 
-            let is_large = potion.size == PotionSize::Large;
-
-            if (!is_main_attr && !is_constitution && !is_winged_bottle) || !is_large {
+            if !is_main_attr && !is_constitution && !is_winged_bottle {
                 return Some(sell(session, from_pos, item_ident, item));
             }
 
-            let is_full = gs.character.active_potions.iter().flatten().any(|a| {
-                let (ts, max) = (chrono::Local::now().timestamp(), 12 * 24 * 60 * 60);
+            let aps = gs.character.active_potions;
 
-                a.typ == potion.typ && a.expires.map_or(false, |exp| exp.timestamp() - ts >= max)
+            let active_idx_and_pot = aps.iter().enumerate().find_map(|(idx, active)| {
+                active.as_ref().filter(|a| a.typ == potion.typ).map(|a| (idx, a))
             });
 
-            if (is_main_attr || is_constitution || is_winged_bottle) && is_large && !is_full {
-                return Some(Command::UsePotion { from: ItemPosition::from(from_pos), item_ident });
+            match active_idx_and_pot {
+                Some((idx, ap)) => {
+                    if ap.size < potion.size {
+                        return Some(Command::RemovePotion { pos: idx });
+                    }
+
+                    if ap.size > potion.size {
+                        return Some(sell(session, from_pos, item_ident, item));
+                    }
+
+                    let (ts, max) = (chrono::Local::now().timestamp(), 12 * 24 * 60 * 60);
+
+                    if !ap.expires.map_or(false, |exp| exp.timestamp() - ts >= max) {
+                        let from = ItemPosition::from(from_pos);
+
+                        return Some(Command::UsePotion { from, item_ident });
+                    }
+                }
+
+                None => {
+                    return Some(Command::UsePotion {
+                        from: ItemPosition::from(from_pos),
+                        item_ident,
+                    });
+                }
             }
         }
 

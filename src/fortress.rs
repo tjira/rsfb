@@ -245,11 +245,13 @@ pub async fn fortress(session: &mut SimpleSession) {
         };
 
         if needs_initialization {
-            log(session, "FORTRESS UNLOCKED - INITIALIZING STATE");
+            log(session, "BUILDING FORTRESS FOR THE FIRST TIME");
 
             let cmd = Command::FortressBuild { f_type: FortressBuildingType::Fortress };
 
-            let _ = session.send_command(cmd).await;
+            if let Err(err) = session.send_command(cmd).await {
+                log(session, &format!("FORTRESS INITIALIZATION ERROR ({:?})", err));
+            }
 
             return;
         }
