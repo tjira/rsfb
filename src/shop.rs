@@ -43,6 +43,12 @@ fn shop_next(session: &SimpleSession) -> Option<Command> {
                         return Some(Command::BuyShop { shop_pos, new_pos, item_ident });
                     }
                 }
+
+                if item.typ == ItemType::QuickSandGlass {
+                    let item_ident = item.command_ident();
+
+                    return Some(Command::BuyShop { shop_pos, new_pos, item_ident });
+                }
             }
         }
     }
