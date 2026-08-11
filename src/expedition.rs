@@ -195,9 +195,7 @@ pub fn can_drink_beer(session: &SimpleSession) -> bool {
         }
 
         if event_free || belt_free {
-            let max_thirst = 6000 + (gs.tavern.beer_max as u32 * 1200);
-
-            if gs.tavern.thirst_for_adventure_sec + 1200 <= max_thirst {
+            if gs.tavern.thirst_for_adventure_sec <= 4800 {
                 return true;
             }
         }

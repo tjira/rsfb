@@ -194,7 +194,7 @@ pub async fn arena(session: &mut SimpleSession) {
 }
 
 async fn wait_between_actions() {
-    let (mean, std, min, max): (f64, f64, f64, f64) = (3000.0, 1200.0, 1000.0, 7000.0);
+    let (mean, std, min, max): (f64, f64, f64, f64) = (1000.0, 500.0, 200.0, 1800.0);
 
     let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
 
