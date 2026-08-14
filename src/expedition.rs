@@ -133,8 +133,6 @@ fn expedition_next(session: &mut SimpleSession) -> Option<Command> {
         return Some(Command::ExpeditionStart { pos });
     }
 
-    log(session, "NOT ENOUGH THIRST FOR ADVENTURE");
-
     None
 }
 
@@ -142,7 +140,7 @@ pub async fn expedition(session: &mut SimpleSession) {
     while let Some(cmd) = expedition_next(session) {
         match &cmd {
             Command::BuyBeer => {
-                log(session, "DRINKING A FREE BEER");
+                log(session, "DRINKING A BEER");
             }
 
             _ => {}

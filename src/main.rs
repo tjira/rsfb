@@ -45,6 +45,7 @@ use witch::witch;
 #[derive(Debug, Clone)]
 struct CharacterStatus {
     name: String,
+    guild: String,
     level: u16,
     class: String,
     gold: f64,
@@ -133,10 +134,13 @@ async fn update_character_status(session: &SimpleSession, shared_map: &SharedSta
             CurrentAction::Unknown(_) => "UNKNOWN".to_string(),
         };
 
+        let guild_name = gs.guild.as_ref().map(|g| g.name.clone()).unwrap_or_else(|| "-".to_string());
+
         let mut map = shared_map.lock().await;
 
         let status = CharacterStatus {
             name: gs.character.name.clone(),
+            guild: guild_name,
             level: gs.character.level,
             class: log::get_class_name(gs.character.class).to_string(),
             gold: (gs.character.silver as f64) / 100.0,
@@ -152,26 +156,27 @@ async fn update_character_status(session: &SimpleSession, shared_map: &SharedSta
 fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
     let mut buffer = String::new();
 
-    const WIDTHS: (usize, usize, usize, usize, usize, usize, usize) = (20, 5, 13, 10, 9, 8, 25);
+    const WIDTHS: (usize, usize, usize, usize, usize, usize, usize, usize) = (14, 14, 5, 14, 11, 7, 5, 13);
 
     let border = format!(
-        "+{}+{}+{}+{}+{}+{}+{}+",
+        "+{}+{}+{}+{}+{}+{}+{}+{}+",
         "-".repeat(WIDTHS.0 + 2),
         "-".repeat(WIDTHS.1 + 2),
         "-".repeat(WIDTHS.2 + 2),
         "-".repeat(WIDTHS.3 + 2),
         "-".repeat(WIDTHS.4 + 2),
         "-".repeat(WIDTHS.5 + 2),
-        "-".repeat(WIDTHS.6 + 2)
+        "-".repeat(WIDTHS.6 + 2),
+        "-".repeat(WIDTHS.7 + 2)
     );
 
-    let header = ("CHARACTER NAME", "LEVEL", "CLASS", "GOLD", "MUSHROOMS", "RANK", "STATUS");
+    let header = ("CHARACTER NAME", "GUILD", "LEVEL", "CLASS", "GOLD", "SHROOMS", "RANK", "STATUS");
 
     let _ = writeln!(buffer, "{}", border);
 
     let _ = writeln!(
         buffer,
-        "| {:<w0$} | {:<w1$} | {:<w2$} | {:<w3$} | {:<w4$} | {:<w5$} | {:<w6$} |",
+        "| {:<w0$} | {:<w1$} | {:<w2$} | {:<w3$} | {:<w4$} | {:<w5$} | {:<w6$} | {:<w7$} |",
         header.0,
         header.1,
         header.2,
@@ -179,13 +184,15 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
         header.4,
         header.5,
         header.6,
+        header.7,
         w0 = WIDTHS.0,
         w1 = WIDTHS.1,
         w2 = WIDTHS.2,
         w3 = WIDTHS.3,
         w4 = WIDTHS.4,
         w5 = WIDTHS.5,
-        w6 = WIDTHS.6
+        w6 = WIDTHS.6,
+        w7 = WIDTHS.7
     );
 
     let _ = writeln!(buffer, "{}", border);
@@ -194,19 +201,20 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
 
     sorted_chars.sort_by_key(|c| c.rank);
 
-    for CharacterStatus { name, level, class, gold, mushrooms, rank, status } in sorted_chars {
-        let (n, l, c, g, m, r, s) = (name, level, class, gold, mushrooms, rank, status);
+    for CharacterStatus { name, guild, level, class, gold, mushrooms, rank, status } in sorted_chars {
+        let (n, g, l, c, gd, m, r, s) = (name, guild, level, class, gold, mushrooms, rank, status);
 
         let _ = writeln!(
             buffer,
-            "| {n:<w0$} | {l:>w1$} | {c:<w2$} | {g:>w3$.2} | {m:>w4$} | {r:>w5$} | {s:<w6$} |",
+            "| {n:<w0$} | {g:<w1$} | {l:>w2$} | {c:<w3$} | {gd:>w4$.2} | {m:>w5$} | {r:>w6$} | {s:<w7$} |",
             w0 = WIDTHS.0,
             w1 = WIDTHS.1,
             w2 = WIDTHS.2,
             w3 = WIDTHS.3,
             w4 = WIDTHS.4,
             w5 = WIDTHS.5,
-            w6 = WIDTHS.6
+            w6 = WIDTHS.6,
+            w7 = WIDTHS.7
         );
     }
 
