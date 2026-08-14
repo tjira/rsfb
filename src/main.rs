@@ -87,6 +87,8 @@ async fn main() -> Result<(), sf_api::error::SFError> {
 
     let (shared_map, num_sessions) = (Arc::new(Mutex::new(HashMap::new())), sessions.len());
 
+    tokio::time::sleep(Duration::from_millis(500)).await;
+
     tokio::spawn({
         let shared_map = shared_map.clone();
 
@@ -112,6 +114,8 @@ async fn main() -> Result<(), sf_api::error::SFError> {
     let mut handles = Vec::new();
 
     for session in sessions {
+        tokio::time::sleep(Duration::from_millis(100)).await;
+
         handles.push(tokio::spawn(process_session(session, shared_map.clone())));
     }
 
