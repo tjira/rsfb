@@ -380,6 +380,22 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
     if gs.character.level >= 90 && gs.blacksmith.is_some() {
         let bs = gs.blacksmith.as_ref().unwrap();
 
+        let (mut tsm, mut tsa) = (0, 0);
+
+        for slot in EquipmentSlot::iter() {
+            if slot == EquipmentSlot::Shield {
+                continue;
+            }
+
+            if let Some(eq_item) = gs.character.equipment.0[slot].as_ref() {
+                if eq_item.gem_slot.is_none() {
+                    let level = eq_item.item_quality as u64;
+
+                    (tsm, tsa) = (tsm + level * 10, tsa + (level * 5 / 10) * 10);
+                }
+            }
+        }
+
         for slot in EquipmentSlot::iter() {
             let item_pos = PlayerItemPosition::from(slot);
 
@@ -399,6 +415,36 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
                         let item_ident = eq_item.command_ident();
 
                         let cmd = Command::Blacksmith { item_pos, action: su, item_ident };
+
+                        return Some((cmd, Some(eq_item.typ.clone())));
+                    }
+                }
+            }
+        }
+
+        let slots_to_upgrade = [
+            EquipmentSlot::Weapon,
+            EquipmentSlot::BreastPlate,
+            EquipmentSlot::FootWear,
+            EquipmentSlot::Gloves,
+            EquipmentSlot::Hat,
+            EquipmentSlot::Belt,
+            EquipmentSlot::Amulet,
+            EquipmentSlot::Ring,
+            EquipmentSlot::Talisman,
+        ];
+
+        for slot in slots_to_upgrade {
+            let item_pos = PlayerItemPosition::from(slot);
+
+            if let Some(eq_item) = gs.character.equipment.0[slot].as_ref() {
+                if let Some(costs) = eq_item.upgrade_costs() {
+                    let (em, ea) = (bs.metal >= costs.metal + tsm, bs.arcane >= costs.arcane + tsa);
+
+                    if em && ea {
+                        let (ii, action) = (eq_item.command_ident(), BlacksmithAction::Upgrade);
+
+                        let cmd = Command::Blacksmith { item_pos, action, item_ident: ii };
 
                         return Some((cmd, Some(eq_item.typ.clone())));
                     }
