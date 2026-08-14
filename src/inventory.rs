@@ -166,7 +166,7 @@ fn matches_attr(gem_typ: GemType, attr_typ: AttributeType) -> bool {
     false
 }
 
-fn inventory_next(session: &SimpleSession) -> Option<Command> {
+fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)> {
     let Some(gs) = session.game_state() else {
         return None;
     };
@@ -177,7 +177,7 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
     if toilet_unlocked {
         if let Some(toilet) = gs.tavern.toilet {
             if toilet.mana_currently >= toilet.mana_total {
-                return Some(Command::ToiletFlush);
+                return Some((Command::ToiletFlush, None));
             }
         }
     }
@@ -192,7 +192,7 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
         let (from_pos, item_ident) = (PlayerItemPosition::from(bag_pos), item.command_ident());
 
         if item.typ == ItemType::ToiletKey && !toilet_unlocked {
-            return Some(Command::ToiletOpen);
+            return Some((Command::ToiletOpen, Some(item.typ.clone())));
         }
 
         if let ItemType::Potion(potion) = item.typ {
@@ -203,7 +203,9 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
 
             if !is_main_attr && !is_constitution && !is_winged_bottle {
                 if can_sell {
-                    return Some(sell(session, from_pos, item_ident, item));
+                    let cmd = sell(session, from_pos, item_ident, item);
+
+                    return Some((cmd, Some(item.typ.clone())));
                 }
 
                 continue;
@@ -218,12 +220,14 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
             match active_idx_and_pot {
                 Some((idx, ap)) => {
                     if ap.size < potion.size {
-                        return Some(Command::RemovePotion { pos: idx });
+                        return Some((Command::RemovePotion { pos: idx }, Some(item.typ.clone())));
                     }
 
                     if ap.size > potion.size {
                         if can_sell {
-                            return Some(sell(session, from_pos, item_ident, item));
+                            let cmd = sell(session, from_pos, item_ident, item);
+
+                            return Some((cmd, Some(item.typ.clone())));
                         }
 
                         continue;
@@ -234,15 +238,16 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
                     if !ap.expires.map_or(false, |exp| exp.timestamp() - ts >= max) {
                         let from = ItemPosition::from(from_pos);
 
-                        return Some(Command::UsePotion { from, item_ident });
+                        let cmd = Command::UsePotion { from, item_ident };
+
+                        return Some((cmd, Some(item.typ.clone())));
                     }
                 }
 
                 None => {
-                    return Some(Command::UsePotion {
-                        from: ItemPosition::from(from_pos),
-                        item_ident,
-                    });
+                    let cmd = Command::UsePotion { from: ItemPosition::from(from_pos), item_ident };
+
+                    return Some((cmd, Some(item.typ.clone())));
                 }
             }
         }
@@ -263,7 +268,9 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
                                 GemSlot::Empty => {
                                     let to_slot = slot;
 
-                                    return Some(Command::Equip { from_pos, to_slot, item_ident });
+                                    let cmd = Command::Equip { from_pos, to_slot, item_ident };
+
+                                    return Some((cmd, Some(item.typ.clone())));
                                 }
 
                                 GemSlot::Filled(inserted_gem) => {
@@ -281,7 +288,9 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
                 }
 
                 if let Some(to_slot) = best_target {
-                    return Some(Command::Equip { from_pos, to_slot, item_ident });
+                    let cmd = Command::Equip { from_pos, to_slot, item_ident };
+
+                    return Some((cmd, Some(item.typ.clone())));
                 }
             }
 
@@ -308,7 +317,9 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
                                 if let Some(gem_slot) = eq_item.gem_slot {
                                     match gem_slot {
                                         GemSlot::Empty => {
-                                            return Some(make_cmd(slot, comp));
+                                            let cmd = make_cmd(slot, comp);
+
+                                            return Some((cmd, Some(item.typ.clone())));
                                         }
 
                                         GemSlot::Filled(ins) => {
@@ -326,14 +337,14 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
                         }
 
                         if let Some(to_slot) = best_target {
-                            return Some(make_cmd(to_slot, comp));
+                            return Some((make_cmd(to_slot, comp), Some(item.typ.clone())));
                         }
                     }
                 }
             }
 
             if can_sell {
-                return Some(sell(session, from_pos, item_ident, item));
+                return Some((sell(session, from_pos, item_ident, item), Some(item.typ.clone())));
             }
 
             continue;
@@ -344,7 +355,9 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
         };
 
         if should_equip(session, item, slot) {
-            return Some(Command::Equip { from_pos, to_slot: slot, item_ident });
+            let cmd = Command::Equip { from_pos, to_slot: slot, item_ident };
+
+            return Some((cmd, Some(item.typ.clone())));
         }
 
         for companion in [CompanionClass::Warrior, CompanionClass::Mage, CompanionClass::Scout] {
@@ -353,12 +366,12 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
 
                 let cmd = Command::EquipCompanion { from_pos, to_slot, item_ident, to_companion };
 
-                return Some(cmd);
+                return Some((cmd, Some(item.typ.clone())));
             }
         }
 
         if can_sell {
-            return Some(sell(session, from_pos, item_ident, item));
+            return Some((sell(session, from_pos, item_ident, item), Some(item.typ.clone())));
         }
 
         continue;
@@ -385,7 +398,9 @@ fn inventory_next(session: &SimpleSession) -> Option<Command> {
                     if bs.metal >= metal_cost && bs.arcane >= arcane_cost {
                         let item_ident = eq_item.command_ident();
 
-                        return Some(Command::Blacksmith { item_pos, action: su, item_ident });
+                        let cmd = Command::Blacksmith { item_pos, action: su, item_ident };
+
+                        return Some((cmd, Some(eq_item.typ.clone())));
                     }
                 }
             }
@@ -404,26 +419,36 @@ async fn wait_between_actions() {
 }
 
 pub async fn inventory(session: &mut SimpleSession) {
-    while let Some(cmd) = inventory_next(session) {
+    while let Some((cmd, item_typ)) = inventory_next(session) {
+        let fmt_item = |t: &Option<ItemType>| {
+            t.as_ref().map_or_else(|| "Unknown".to_string(), |i| format!("{:?}", i))
+        };
+
         match &cmd {
-            Command::Equip { to_slot, .. } => {
-                let message = format!("EQUIPPING ITEM TO '{:?}' SLOT", to_slot);
+            Command::Equip { .. } => {
+                let message = format!("EQUIPPING '{}' ITEM", fmt_item(&item_typ));
 
                 log(session, &message);
             }
 
-            Command::EquipCompanion { to_slot, to_companion, .. } => {
-                let message = format!("EQUIPPING '{:?}' TO '{:?}' SLOT", to_companion, to_slot);
+            Command::EquipCompanion { to_companion, .. } => {
+                let (i, c) = (fmt_item(&item_typ), to_companion);
+
+                let message = format!("EQUIPPING '{}' TO '{:?}' COMPANION", i, c);
 
                 log(session, &message);
             }
 
             Command::SellShop { .. } => {
-                log(session, "SELLING WEAKER/INCOMPATIBLE ITEM");
+                let message = format!("SELLING '{}' ITEM", fmt_item(&item_typ));
+
+                log(session, &message);
             }
 
             Command::UsePotion { .. } => {
-                log(session, "DRINKING POTION");
+                let message = format!("DRINKING '{}' POTION", fmt_item(&item_typ));
+
+                log(session, &message);
             }
 
             Command::ToiletFlush => {
@@ -431,19 +456,25 @@ pub async fn inventory(session: &mut SimpleSession) {
             }
 
             Command::ToiletDrop { .. } => {
-                log(session, "THROWING ITEM INTO TOILET");
+                let message = format!("THROWING '{}' INTO TOILET", fmt_item(&item_typ));
+
+                log(session, &message);
             }
 
             Command::WitchDropCauldron { .. } => {
-                log(session, "THROWING ITEM INTO WITCH CAULDRON");
+                let message = format!("THROWING '{}' INTO WITCH CAULDRON", fmt_item(&item_typ));
+
+                log(session, &message);
             }
 
             Command::ToiletOpen => {
                 log(session, "UNLOCKING TOILET WITH KEY");
             }
 
-            Command::Blacksmith { action, item_pos, .. } => {
-                let message = format!("BLACKSMITH '{:?}' ON {} POSITION", action, item_pos);
+            Command::Blacksmith { action, .. } => {
+                let (a, i) = (action, fmt_item(&item_typ));
+
+                let message = format!("BLACKSMITH '{:?}' ON '{}'", a, i);
 
                 log(session, &message);
             }
