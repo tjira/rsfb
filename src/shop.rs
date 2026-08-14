@@ -12,7 +12,7 @@ use sf_api::{
 
 use crate::log::log;
 
-fn shop_next(session: &SimpleSession) -> Option<Command> {
+fn shop_next(session: &SimpleSession) -> Option<(Command, ItemType)> {
     let Some(gs) = session.game_state() else {
         return None;
     };
@@ -59,23 +59,25 @@ fn shop_next(session: &SimpleSession) -> Option<Command> {
                         };
 
                         if should_buy {
-                            let item_ident = item.command_ident();
+                            let (item_ident, item_typ) = (item.command_ident(), item.typ.clone());
 
-                            return Some(Command::BuyShop { shop_pos, new_pos, item_ident });
+                            let cmd = Command::BuyShop { shop_pos, new_pos, item_ident };
+
+                            return Some((cmd, item_typ));
                         }
                     }
                 }
 
                 if item.typ == ItemType::QuickSandGlass {
-                    let item_ident = item.command_ident();
+                    let (item_ident, item_typ) = (item.command_ident(), item.typ.clone());
 
-                    return Some(Command::BuyShop { shop_pos, new_pos, item_ident });
+                    return Some((Command::BuyShop { shop_pos, new_pos, item_ident }, item_typ));
                 }
 
                 if crate::inventory::is_equippable(session, item) {
-                    let item_ident = item.command_ident();
+                    let (item_ident, item_typ) = (item.command_ident(), item.typ.clone());
 
-                    return Some(Command::BuyShop { shop_pos, new_pos, item_ident });
+                    return Some((Command::BuyShop { shop_pos, new_pos, item_ident }, item_typ));
                 }
             }
         }
@@ -93,10 +95,10 @@ pub async fn shop(session: &mut SimpleSession) {
         return;
     }
 
-    while let Some(cmd) = shop_next(session) {
+    while let Some((cmd, item_typ)) = shop_next(session) {
         match &cmd {
             Command::BuyShop { shop_pos, .. } => {
-                log(session, &format!("BUYING FROM '{:?}' SHOP", shop_pos.typ));
+                log(session, &format!("BUYING '{:?}' FROM '{:?}' SHOP", item_typ, shop_pos.typ));
             }
 
             _ => {}

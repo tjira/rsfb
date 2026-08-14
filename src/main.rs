@@ -134,13 +134,13 @@ async fn update_character_status(session: &SimpleSession, shared_map: &SharedSta
             CurrentAction::Unknown(_) => "UNKNOWN".to_string(),
         };
 
-        let guild_name = gs.guild.as_ref().map(|g| g.name.clone()).unwrap_or_else(|| "-".to_string());
+        let guild = gs.guild.as_ref().map(|g| g.name.clone()).unwrap_or_else(|| "-".to_string());
 
         let mut map = shared_map.lock().await;
 
         let status = CharacterStatus {
             name: gs.character.name.clone(),
-            guild: guild_name,
+            guild: guild,
             level: gs.character.level,
             class: log::get_class_name(gs.character.class).to_string(),
             gold: (gs.character.silver as f64) / 100.0,
@@ -156,7 +156,8 @@ async fn update_character_status(session: &SimpleSession, shared_map: &SharedSta
 fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
     let mut buffer = String::new();
 
-    const WIDTHS: (usize, usize, usize, usize, usize, usize, usize, usize) = (14, 14, 5, 14, 11, 7, 5, 13);
+    const WIDTHS: (usize, usize, usize, usize, usize, usize, usize, usize) =
+        (14, 14, 5, 14, 11, 7, 5, 13);
 
     let border = format!(
         "+{}+{}+{}+{}+{}+{}+{}+{}+",
@@ -201,7 +202,8 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
 
     sorted_chars.sort_by_key(|c| c.rank);
 
-    for CharacterStatus { name, guild, level, class, gold, mushrooms, rank, status } in sorted_chars {
+    for CharacterStatus { name, guild, level, class, gold, mushrooms, rank, status } in sorted_chars
+    {
         let (n, g, l, c, gd, m, r, s) = (name, guild, level, class, gold, mushrooms, rank, status);
 
         let _ = writeln!(
