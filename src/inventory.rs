@@ -184,6 +184,7 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
 
     let can_sell = gs.character.inventory.count_free_slots() < 3;
 
+    // 1. Perform equip/use/potion actions
     for (bag_pos, slot) in gs.character.inventory.iter() {
         let Some(item) = slot else {
             continue;
@@ -202,12 +203,6 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
             let is_winged_bottle = potion.typ == PotionType::EternalLife;
 
             if !is_main_attr && !is_constitution && !is_winged_bottle {
-                if can_sell {
-                    let cmd = sell(session, from_pos, item_ident, item);
-
-                    return Some((cmd, Some(item.typ.clone())));
-                }
-
                 continue;
             }
 
@@ -224,12 +219,6 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
                     }
 
                     if ap.size > potion.size {
-                        if can_sell {
-                            let cmd = sell(session, from_pos, item_ident, item);
-
-                            return Some((cmd, Some(item.typ.clone())));
-                        }
-
                         continue;
                     }
 
@@ -343,10 +332,6 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
                 }
             }
 
-            if can_sell {
-                return Some((sell(session, from_pos, item_ident, item), Some(item.typ.clone())));
-            }
-
             continue;
         }
 
@@ -369,12 +354,76 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
                 return Some((cmd, Some(item.typ.clone())));
             }
         }
+    }
 
-        if can_sell {
-            return Some((sell(session, from_pos, item_ident, item), Some(item.typ.clone())));
+    let mut surplus_items = Vec::new();
+
+    for (bag_pos, slot) in gs.character.inventory.iter() {
+        if let Some(item) = slot {
+            if item.typ == ItemType::ToiletKey && !toilet_unlocked {
+                continue;
+            }
+
+            surplus_items.push((bag_pos, item));
         }
+    }
 
-        continue;
+    if gs.character.level >= 90 && gs.blacksmith.is_some() {
+        let blacksmith = gs.blacksmith.as_ref().unwrap();
+
+        if blacksmith.dismantle_left > 0 {
+            for &(bag_pos, item) in &surplus_items {
+                if item.typ.equipment_slot().is_some() {
+                    let reward = item.dismantle_reward();
+
+                    if reward.arcane > 1000 {
+                        let item_pos = PlayerItemPosition::from(bag_pos);
+
+                        let (item_ident, a) = (item.command_ident(), BlacksmithAction::Dismantle);
+
+                        let cmd = Command::Blacksmith { item_pos, action: a, item_ident };
+
+                        return Some((cmd, Some(item.typ.clone())));
+                    }
+                }
+            }
+        }
+    }
+
+    if toilet_unlocked {
+        if let Some(toilet) = gs.tavern.toilet {
+            if toilet.sacrifices_left > 0 {
+                let mut best_sacrifice = None;
+
+                for &(bag_pos, item) in &surplus_items {
+                    if item.is_epic() {
+                        best_sacrifice = Some((bag_pos, item));
+
+                        break;
+                    }
+                }
+
+                if best_sacrifice.is_none() {
+                    if let Some(&(bag_pos, item)) = surplus_items.first() {
+                        best_sacrifice = Some((bag_pos, item));
+                    }
+                }
+
+                if let Some((bag_pos, item)) = best_sacrifice {
+                    let item_pos = PlayerItemPosition::from(bag_pos);
+
+                    return Some((Command::ToiletDrop { item_pos }, Some(item.typ.clone())));
+                }
+            }
+        }
+    }
+
+    if can_sell {
+        if let Some(&(bag_pos, item)) = surplus_items.first() {
+            let (item_pos, item_ident) = (PlayerItemPosition::from(bag_pos), item.command_ident());
+
+            return Some((sell(session, item_pos, item_ident, item), Some(item.typ.clone())));
+        }
     }
 
     if gs.character.level >= 90 && gs.blacksmith.is_some() {
