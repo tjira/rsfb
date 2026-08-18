@@ -161,7 +161,7 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
     let mut buffer = String::new();
 
     const WIDTHS: (usize, usize, usize, usize, usize, usize, usize, usize) =
-        (14, 14, 5, 14, 11, 7, 5, 13);
+        (14, 16, 5, 14, 11, 7, 7, 13);
 
     let border = format!(
         "+{}+{}+{}+{}+{}+{}+{}+{}+",
