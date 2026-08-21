@@ -1,3 +1,3 @@
-pub const EXPEDITION_START_HOUR: u32 = 7;
+pub const EXPEDITION_START_HOUR: u32 = 0;
 pub const EPIC_LEGENDARY_MULTIPLIER: f64 = 2.0;
 pub const GOBLIN_LEVEL_HERO_RATIO: f64 = 1.5;

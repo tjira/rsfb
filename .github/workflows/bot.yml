@@ -1,0 +1,23 @@
+name: Run Bot
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run Bot
+        env:
+          SFGAME_USERNAME: ${{secrets.SFGAME_USERNAME}}
+          SFGAME_PASSWORD: ${{secrets.SFGAME_PASSWORD}}
+        run: timeout -k 10s 1h cargo run --release -- "$SFGAME_USERNAME" "$SFGAME_PASSWORD" --hidden || [ $? -eq 124 ]
