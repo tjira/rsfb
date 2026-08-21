@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -21,7 +21,7 @@ use crate::log::log;
 static FS_COLLECTED_ON_STARTUP: Mutex<Option<HashSet<String>>> = Mutex::new(None);
 static UW_COLLECTED_ON_STARTUP: Mutex<Option<HashSet<String>>> = Mutex::new(None);
 
-static LAST_LURE_CHECK: Mutex<Option<(String, LureSuggestion, u32)>> = Mutex::new(None);
+static LAST_LURE_CHECK: Mutex<Option<HashMap<String, (LureSuggestion, u32)>>> = Mutex::new(None);
 
 fn fortress_next(session: &SimpleSession) -> Option<Command> {
     let Some(gs) = session.game_state() else {
@@ -419,9 +419,15 @@ fn underworld_next(session: &SimpleSession) -> Option<Command> {
             let already_checked = {
                 let last_check = LAST_LURE_CHECK.lock().unwrap();
 
-                last_check.as_ref().map_or(false, |(name, id, lvl)| {
-                    name == &gs.character.name && *id == sugg && *lvl == goblin_level as u32
-                })
+                let mut is_valid = false;
+
+                if let Some(m) = &*last_check {
+                    if let Some(&(id, lvl)) = m.get(&gs.character.name) {
+                        is_valid = (id == sugg) && (lvl == goblin_level as u32);
+                    }
+                }
+
+                is_valid
             };
 
             if already_checked {
@@ -441,7 +447,9 @@ fn underworld_next(session: &SimpleSession) -> Option<Command> {
                     if goblin_level < level * crate::constant::GOBLIN_LEVEL_HERO_RATIO {
                         let mut last_check = LAST_LURE_CHECK.lock().unwrap();
 
-                        *last_check = Some((gs.character.name.clone(), sugg, goblin_level as u32));
+                        let (name, pair) = (gs.character.name.clone(), (sugg, goblin_level as u32));
+
+                        last_check.get_or_insert_with(HashMap::new).insert(name, pair);
 
                         return None;
                     }
@@ -469,6 +477,8 @@ pub async fn underworld(session: &mut SimpleSession) {
     }
 
     while let Some(cmd) = underworld_next(session) {
+        let is_attack = matches!(&cmd, Command::UnderworldAttack { .. });
+
         match &cmd {
             Command::UnderworldCollect { resource } => {
                 log(session, &format!("GATHERING '{:?}' FROM UNDERWORLD", resource));
@@ -489,6 +499,12 @@ pub async fn underworld(session: &mut SimpleSession) {
             log(session, &format!("UNDERWORLD SEND COMMAND ERROR ({:?})", err));
 
             break;
+        }
+
+        if is_attack {
+            if let Some(gs) = session.game_state_mut() {
+                gs.hall_of_fames.players.clear();
+            }
         }
 
         wait_between_actions().await;

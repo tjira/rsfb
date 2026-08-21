@@ -106,8 +106,7 @@ fn sell(s: &SimpleSession, pos: PlayerItemPosition, ii: ItemCommandIdent, item: 
         return Command::SellShop { item_pos: pos, item_ident: ii };
     };
 
-    let toilet_unlocked =
-        gs.character.level >= 100 && gs.tavern.toilet.map_or(false, |t| t.aura > 0);
+    let toilet_unlocked = gs.character.level >= 100 && gs.tavern.toilet.is_some();
 
     if toilet_unlocked {
         if let Some(toilet) = gs.tavern.toilet {
@@ -171,8 +170,7 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
         return None;
     };
 
-    let toilet_unlocked =
-        gs.character.level >= 100 && gs.tavern.toilet.map_or(false, |t| t.aura > 0);
+    let toilet_unlocked = gs.character.level >= 100 && gs.tavern.toilet.is_some();
 
     if toilet_unlocked {
         if let Some(toilet) = gs.tavern.toilet {

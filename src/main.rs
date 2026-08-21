@@ -251,34 +251,36 @@ async fn print_character_table(shared_map: &SharedStatusMap) {
 }
 
 async fn relogin(user: &str, pass: &str, name: &str) -> Option<SimpleSession> {
-    SimpleSession::login_sf_account(user, pass).await.ok()?.into_iter().find(|s| s.username() == name)
+    let (u, p, n) = (user, pass, name);
+
+    SimpleSession::login_sf_account(u, p).await.ok()?.into_iter().find(|s| s.username() == n)
 }
 
-async fn process_session(mut session: SimpleSession, user: String, pass: String, shared_map: SharedStatusMap) {
-    let name = session.username().to_string();
+async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm: SharedStatusMap) {
+    let name = sess.username().to_string();
 
-    if let Err(err) = session.send_command(Command::Update).await {
-        log::log(&session, &format!("FAILED TO INITIALIZE SESSION ({:?})", err));
+    if let Err(err) = sess.send_command(Command::Update).await {
+        log::log(&sess, &format!("FAILED TO INITIALIZE SESSION ({:?})", err));
 
         if let Some(s) = relogin(&user, &pass, &name).await {
-            session = s;
+            sess = s;
         }
     }
 
-    update_character_status(&session, &shared_map).await;
+    update_character_status(&sess, &sm).await;
 
     loop {
         let hour = chrono::Local::now().hour();
 
-        if let Err(err) = session.send_command(Command::Update).await {
-            log::log(&session, &format!("FAILED TO UPDATE SESSION ({:?})", err));
+        if let Err(err) = sess.send_command(Command::Update).await {
+            log::log(&sess, &format!("FAILED TO UPDATE SESSION ({:?})", err));
 
             tokio::time::sleep(Duration::from_secs(300)).await;
 
             if let Some(s) = relogin(&user, &pass, &name).await {
-                log::log(&session, "SSO CREDENTIALS RENEWED");
+                log::log(&sess, "SSO CREDENTIALS RENEWED");
 
-                session = s;
+                sess = s;
 
                 continue;
             }
@@ -286,17 +288,17 @@ async fn process_session(mut session: SimpleSession, user: String, pass: String,
             continue;
         }
 
-        update_character_status(&session, &shared_map).await;
+        update_character_status(&sess, &sm).await;
 
-        let Some(gs) = session.game_state() else {
+        let Some(gs) = sess.game_state() else {
             continue;
         };
 
         if let Some(unlockable) = gs.pending_unlocks.first().copied() {
-            log::log(&session, &format!("UNLOCKING '{:?}' FEATURE", unlockable));
+            log::log(&sess, &format!("UNLOCKING '{:?}' FEATURE", unlockable));
 
-            if let Err(err) = session.send_command(Command::UnlockFeature { unlockable }).await {
-                log::log(&session, &format!("FAILED TO UNLOCK FEATURE ({:?})", err));
+            if let Err(err) = sess.send_command(Command::UnlockFeature { unlockable }).await {
+                log::log(&sess, &format!("FAILED TO UNLOCK FEATURE ({:?})", err));
             }
 
             wait_between_actions().await;
@@ -304,7 +306,7 @@ async fn process_session(mut session: SimpleSession, user: String, pass: String,
             continue;
         }
 
-        guard(&mut session).await;
+        guard(&mut sess).await;
 
         if hour < constant::EXPEDITION_START_HOUR {
             wait_between_actions().await;
@@ -312,50 +314,50 @@ async fn process_session(mut session: SimpleSession, user: String, pass: String,
             continue;
         }
 
-        shop(&mut session).await;
+        shop(&mut sess).await;
 
-        inventory(&mut session).await;
+        inventory(&mut sess).await;
 
-        fortress(&mut session).await;
+        fortress(&mut sess).await;
 
-        underworld(&mut session).await;
+        underworld(&mut sess).await;
 
-        let Some(gs) = session.game_state() else {
+        let Some(gs) = sess.game_state() else {
             continue;
         };
 
         if gs.character.inventory.count_free_slots() == 0 {
-            log::log(&session, "FULL INVENTORY, SKIPPING EXPEDITIONS, DUNGEONS AND DAILY REWARDS");
+            log::log(&sess, "FULL INVENTORY, SKIPPING EXPEDITIONS, DUNGEONS AND DAILY REWARDS");
 
             wait_between_actions().await;
 
             continue;
         }
 
-        daily(&mut session).await;
-        guild(&mut session).await;
-        skill(&mut session).await;
-        mount(&mut session).await;
-        witch(&mut session).await;
-        arena(&mut session).await;
+        daily(&mut sess).await;
+        guild(&mut sess).await;
+        skill(&mut sess).await;
+        mount(&mut sess).await;
+        witch(&mut sess).await;
+        arena(&mut sess).await;
 
-        dungeon(&mut session).await;
+        dungeon(&mut sess).await;
 
-        pets(&mut session).await;
+        pets(&mut sess).await;
 
-        let Some(gs) = session.game_state() else {
+        let Some(gs) = sess.game_state() else {
             continue;
         };
 
         let thirst = gs.tavern.thirst_for_adventure_sec;
 
-        let can_drink_beer = expedition::can_drink_beer(&session);
+        let can_drink_beer = expedition::can_drink_beer(&sess);
 
         if gs.tavern.current_action == CurrentAction::Expedition || thirst > 0 || can_drink_beer {
-            expedition(&mut session).await;
+            expedition(&mut sess).await;
         }
 
-        update_character_status(&session, &shared_map).await;
+        update_character_status(&sess, &sm).await;
 
         wait_between_actions().await;
     }

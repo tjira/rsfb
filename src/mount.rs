@@ -20,28 +20,22 @@ fn mount_next(session: &SimpleSession) -> Option<Command> {
         _ => Some(m),
     });
 
-    match active_mount {
-        None => {
-            if gs.character.mushrooms >= 25 {
-                return Some(Command::BuyMount { mount: Mount::Dragon });
-            }
+    let current_tier = active_mount.map(|m| m as u8).unwrap_or(0);
 
-            if gs.character.mushrooms >= 1 && gs.character.silver >= 1000 {
-                return Some(Command::BuyMount { mount: Mount::Tiger });
-            }
+    let candidates = [Mount::Dragon, Mount::Tiger, Mount::Horse, Mount::Cow];
 
-            None
+    for mount in candidates {
+        if (mount as u8) > current_tier {
+            let cost = mount.cost();
+
+            if gs.character.mushrooms >= cost.mushrooms as u32 && gs.character.silver >= cost.silver
+            {
+                return Some(Command::BuyMount { mount });
+            }
         }
-
-        Some(Mount::Tiger) => {
-            if gs.character.mushrooms >= 25 {
-                return Some(Command::BuyMount { mount: Mount::Dragon });
-            }
-
-            None
-        }
-        _ => None,
     }
+
+    None
 }
 
 pub async fn mount(session: &mut SimpleSession) {
