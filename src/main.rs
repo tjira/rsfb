@@ -60,16 +60,22 @@ type SharedStatusMap = Arc<Mutex<HashMap<String, CharacterStatus>>>;
 async fn main() -> Result<(), sf_api::error::SFError> {
     let args: Vec<String> = env::args().collect();
 
-    if args.len() < 3 {
+    let hidden = args.iter().any(|arg| arg == "--hidden");
+
+    let positional: Vec<&String> = args.iter().skip(1).filter(|arg| *arg != "--hidden").collect();
+
+    if positional.len() < 2 {
         let prog = args.first().map(|s| s.as_str()).unwrap_or("rsfb");
 
-        eprintln!("USAGE: {} <USERNAME> <PASSWORD>", prog);
+        eprintln!("USAGE: {} <USERNAME> <PASSWORD> [--hidden]", prog);
 
         process::exit(1);
     }
 
-    let username = &args[1];
-    let password = &args[2];
+    log::set_hidden(hidden);
+
+    let username = positional[0];
+    let password = positional[1];
 
     let sessions = match SimpleSession::login_sf_account(&username, &password).await {
         Ok(sessions) => {
@@ -202,13 +208,16 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
 
     let _ = writeln!(buffer, "{}", border);
 
-    let mut sorted_chars: Vec<&CharacterStatus> = map.values().collect();
+    let mut s_chars: Vec<&CharacterStatus> = map.values().collect();
 
-    sorted_chars.sort_by_key(|c| c.rank);
+    s_chars.sort_by_key(|c| c.rank);
 
-    for CharacterStatus { name, guild, level, class, gold, mushrooms, rank, status } in sorted_chars
-    {
-        let (n, g, l, c, gd, m, r, s) = (name, guild, level, class, gold, mushrooms, rank, status);
+    for CharacterStatus { name, guild, level, class, gold, mushrooms, rank, status } in s_chars {
+        let dn = if log::is_hidden() { "****" } else { name.as_str() };
+
+        let dg = if log::is_hidden() { "****" } else { guild.as_str() };
+
+        let (n, g, l, c, gd, m, r, s) = (dn, dg, level, class, gold, mushrooms, rank, status);
 
         let _ = writeln!(
             buffer,

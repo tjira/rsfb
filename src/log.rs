@@ -1,4 +1,16 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use sf_api::{gamestate::character::Class, session::SimpleSession};
+
+static HIDDEN: AtomicBool = AtomicBool::new(false);
+
+pub(crate) fn set_hidden(hidden: bool) {
+    HIDDEN.store(hidden, Ordering::Relaxed);
+}
+
+pub(crate) fn is_hidden() -> bool {
+    HIDDEN.load(Ordering::Relaxed)
+}
 
 pub(crate) fn get_class_name(class: Class) -> &'static str {
     match class {
@@ -23,7 +35,9 @@ pub(crate) fn log(session: &SimpleSession, message: &str) {
 
     if let Some(gs) = session.game_state() {
         let (name, level, class) = {
-            let (name, level) = (gs.character.name.clone(), gs.character.level);
+            let name = if is_hidden() { "****" } else { &gs.character.name };
+
+            let (name, level) = (name.to_string(), gs.character.level);
 
             (name, level, get_class_name(gs.character.class))
         };
@@ -31,5 +45,7 @@ pub(crate) fn log(session: &SimpleSession, message: &str) {
         return println!("[{timestamp}] Level {level} {class} ({name}): {message}");
     }
 
-    println!("[{timestamp}] USER '{}' (STATE UNPOPULATED): {message}", session.username());
+    let username = if is_hidden() { "****" } else { session.username() };
+
+    println!("[{timestamp}] USER '{username}' (STATE UNPOPULATED): {message}");
 }
