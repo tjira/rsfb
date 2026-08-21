@@ -5,6 +5,7 @@ use rand_distr::{Distribution, Normal};
 
 use sf_api::{
     command::{Command, FortunePayment},
+    gamestate::unlockables::HellevatorStatus,
     session::SimpleSession,
 };
 
@@ -41,6 +42,25 @@ fn daily_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
+    if gs.character.level >= 10 {
+        match gs.hellevator.status() {
+            HellevatorStatus::RewardClaimable => {
+                return Some(Command::HellevatorClaimFinal);
+            }
+
+            HellevatorStatus::Active(hellevator) => {
+                if hellevator.rewards_yesterday.as_ref().is_some_and(|r| r.claimable()) {
+                    return Some(Command::HellevatorClaimDailyYesterday);
+                }
+
+                if hellevator.rewards_today.as_ref().is_some_and(|r| r.claimable()) {
+                    return Some(Command::HellevatorClaimDaily);
+                }
+            }
+            _ => {}
+        }
+    }
+
     if let Some(next) = gs.specials.wheel.next_free_spin {
         if now >= next {
             return Some(Command::SpinWheelOfFortune { payment: FortunePayment::FreeTurn });
@@ -71,6 +91,18 @@ pub async fn daily(session: &mut SimpleSession) {
 
             Command::SpinWheelOfFortune { payment: FortunePayment::FreeTurn } => {
                 log(session, "SPINNING WHEEL OF FORTUNE (FREE SPIN)");
+            }
+
+            Command::HellevatorClaimDaily => {
+                log(session, "COLLECTING HELLEVATOR DAILY CHESTS");
+            }
+
+            Command::HellevatorClaimDailyYesterday => {
+                log(session, "COLLECTING HELLEVATOR YESTERDAY'S DAILY CHESTS");
+            }
+
+            Command::HellevatorClaimFinal => {
+                log(session, "COLLECTING HELLEVATOR FINAL REWARD");
             }
 
             _ => {}
