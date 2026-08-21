@@ -225,10 +225,11 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
         usize,
         usize,
         usize,
-    ) = (14, 16, 5, 14, 11, 7, 5, 8, 10, 6, 7, 13);
+        usize,
+    ) = (2, 14, 16, 5, 14, 11, 7, 5, 8, 10, 6, 7, 13);
 
     let border = format!(
-        "+{}+{}+{}+{}+{}+{}+{}+{}+{}+{}+{}+{}+",
+        "+{}+{}+{}+{}+{}+{}+{}+{}+{}+{}+{}+{}+{}+",
         "-".repeat(WIDTHS.0 + 2),
         "-".repeat(WIDTHS.1 + 2),
         "-".repeat(WIDTHS.2 + 2),
@@ -240,10 +241,12 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
         "-".repeat(WIDTHS.8 + 2),
         "-".repeat(WIDTHS.9 + 2),
         "-".repeat(WIDTHS.10 + 2),
-        "-".repeat(WIDTHS.11 + 2)
+        "-".repeat(WIDTHS.11 + 2),
+        "-".repeat(WIDTHS.12 + 2)
     );
 
     let header = (
+        "#",
         "CHARACTER NAME",
         "GUILD",
         "LEVEL",
@@ -262,7 +265,7 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
 
     let _ = writeln!(
         buffer,
-        "| {:<w0$} | {:<w1$} | {:<w2$} | {:<w3$} | {:<w4$} | {:<w5$} | {:<w6$} | {:<w7$} | {:<w8$} | {:<w9$} | {:<w10$} | {:<w11$} |",
+        "| {:<w0$} | {:<w1$} | {:<w2$} | {:<w3$} | {:<w4$} | {:<w5$} | {:<w6$} | {:<w7$} | {:<w8$} | {:<w9$} | {:<w10$} | {:<w11$} | {:<w12$} |",
         header.0,
         header.1,
         header.2,
@@ -275,6 +278,7 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
         header.9,
         header.10,
         header.11,
+        header.12,
         w0 = WIDTHS.0,
         w1 = WIDTHS.1,
         w2 = WIDTHS.2,
@@ -286,7 +290,8 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
         w8 = WIDTHS.8,
         w9 = WIDTHS.9,
         w10 = WIDTHS.10,
-        w11 = WIDTHS.11
+        w11 = WIDTHS.11,
+        w12 = WIDTHS.12
     );
 
     let _ = writeln!(buffer, "{}", border);
@@ -295,26 +300,30 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
 
     s_chars.sort_by_key(|c| c.rank);
 
-    for CharacterStatus {
-        name,
-        guild,
-        level,
-        class,
-        gold,
-        mushrooms,
-        mount,
-        treasure,
-        instructor,
-        thirst,
-        rank,
-        status,
-    } in s_chars
+    for (
+        i,
+        CharacterStatus {
+            name,
+            guild,
+            level,
+            class,
+            gold,
+            mushrooms,
+            mount,
+            treasure,
+            instructor,
+            thirst,
+            rank,
+            status,
+        },
+    ) in s_chars.into_iter().enumerate()
     {
         let dn = if log::is_hidden() { "****" } else { name.as_str() };
 
         let dg = if log::is_hidden() { "****" } else { guild.as_str() };
 
-        let (n, g, l, c, gd, m, mt, tr, ins, th, r, s) = (
+        let (idx, n, g, l, c, gd, m, mt, tr, ins, th, r, s) = (
+            i + 1,
             dn,
             dg,
             level,
@@ -331,7 +340,7 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
 
         let _ = writeln!(
             buffer,
-            "| {n:<w0$} | {g:<w1$} | {l:>w2$} | {c:<w3$} | {gd:>w4$.2} | {m:>w5$} | {mt:>w6$} | {tr:>w7$} | {ins:>w8$} | {th:>w9$} | {r:>w10$} | {s:<w11$} |",
+            "| {idx:>w0$} | {n:<w1$} | {g:<w2$} | {l:>w3$} | {c:<w4$} | {gd:>w5$.2} | {m:>w6$} | {mt:>w7$} | {tr:>w8$} | {ins:>w9$} | {th:>w10$} | {r:>w11$} | {s:<w12$} |",
             w0 = WIDTHS.0,
             w1 = WIDTHS.1,
             w2 = WIDTHS.2,
@@ -343,7 +352,8 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
             w8 = WIDTHS.8,
             w9 = WIDTHS.9,
             w10 = WIDTHS.10,
-            w11 = WIDTHS.11
+            w11 = WIDTHS.11,
+            w12 = WIDTHS.12
         );
     }
 
