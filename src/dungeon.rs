@@ -8,6 +8,7 @@ use strum::IntoEnumIterator;
 use sf_api::{
     command::Command,
     gamestate::dungeons::{Dungeon, DungeonProgress, LightDungeon, ShadowDungeon},
+    gamestate::unlockables::HellevatorStatus,
     session::SimpleSession,
 };
 
@@ -20,6 +21,18 @@ fn dungeon_next(session: &SimpleSession) -> Option<Command> {
 
     if gs.dungeons.portal.as_ref().is_some_and(|p| p.can_fight) {
         return Some(Command::FightPortal);
+    }
+
+    if gs.character.level >= 10 {
+        match gs.hellevator.status() {
+            HellevatorStatus::NotEntered => return Some(Command::HellevatorEnter),
+
+            HellevatorStatus::Active(hellevator) if hellevator.key_cards > 0 => {
+                return Some(Command::HellevatorFight { use_mushroom: false });
+            }
+
+            _ => {}
+        }
     }
 
     if let Some(next_fight) = gs.dungeons.next_free_fight {
@@ -84,7 +97,18 @@ pub async fn dungeon(session: &mut SimpleSession) {
         if let Some(next_fight) = gs.dungeons.next_free_fight {
             let portal_can_fight = gs.dungeons.portal.as_ref().is_some_and(|p| p.can_fight);
 
-            if Local::now() < next_fight + chrono::Duration::seconds(5) && !portal_can_fight {
+            let hellevator_can_fight = gs.character.level >= 10
+                && match gs.hellevator.status() {
+                    HellevatorStatus::NotEntered => true,
+
+                    HellevatorStatus::Active(h) => h.key_cards > 0,
+
+                    _ => false,
+                };
+
+            let not_portal_or_hell = !portal_can_fight && !hellevator_can_fight;
+
+            if Local::now() < next_fight + chrono::Duration::seconds(5) && not_portal_or_hell {
                 return;
             }
         }
@@ -108,6 +132,14 @@ pub async fn dungeon(session: &mut SimpleSession) {
 
             Command::FightDungeon { dungeon, .. } => {
                 log(session, &format!("FIGHTING IN '{dungeon:?}' DUNGEON"));
+            }
+
+            Command::HellevatorEnter => {
+                log(session, "ENTERING HELLEVATOR");
+            }
+
+            Command::HellevatorFight { .. } => {
+                log(session, "FIGHTING IN HELLEVATOR");
             }
 
             _ => {}
