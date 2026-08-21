@@ -74,13 +74,13 @@ rsfb <USERNAME> <PASSWORD>
 Upon launching, the bot will log into your account, spawn individual async threads for each of your characters, and periodically print a status table in your terminal.
 
 ```text
-+----------------+-------+--------------+------------+-----------+----------+--------------+
-| CHARACTER NAME | LEVEL | CLASS        | GOLD       | MUSHROOMS | RANK     | STATUS       |
-+----------------+-------+--------------+------------+-----------+----------+--------------+
-| Hero One       |   385 | Demon Hunter |  412589.50 |       320 |     1420 | IDLE         |
-| Hero Two       |   210 | Mage         |   12450.25 |        45 |     8942 | EXPEDITION   |
-| Hero Three     |   124 | Warrior      |    3402.10 |        12 |    15201 | WORKING (8H) |
-+----------------+-------+--------------+------------+-----------+----------+--------------+
++----------------+------------------+-------+----------------+-------------+---------+-------+----------+------------+--------+---------+---------------+
+| CHARACTER NAME | GUILD            | LEVEL | CLASS          | GOLD        | SHROOMS | MOUNT | TREASURE | INSTRUCTOR | THIRST | RANK    | STATUS        |
++----------------+------------------+-------+----------------+-------------+---------+-------+----------+------------+--------+---------+---------------+
+| Hero One       | Knights of Valor |   385 | Demon Hunter   |   412589.50 |     320 |   50% |   200.0% |     200.0% |    100 |    1420 | IDLE          |
+| Hero Two       | -                |   210 | Mage           |    12450.25 |      45 |   30% |     0.0% |       0.0% |     72 |    8942 | EXPEDITION    |
+| Hero Three     | Shadow Syndicate |   124 | Warrior        |     3402.10 |      12 |   20% |   150.0% |     150.0% |      0 |   15201 | WORKING (8H)  |
++----------------+------------------+-------+----------------+-------------+---------+-------+----------+------------+--------+---------+---------------+
 ```
 
 ## Credits

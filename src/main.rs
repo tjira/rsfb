@@ -10,7 +10,11 @@ use rand::thread_rng;
 use rand_distr::{Distribution, Normal};
 use tokio::sync::Mutex;
 
-use sf_api::{command::Command, gamestate::tavern::CurrentAction, session::SimpleSession};
+use sf_api::{
+    command::Command,
+    gamestate::{character::Mount, tavern::CurrentAction},
+    session::SimpleSession,
+};
 
 mod arena;
 mod constant;
@@ -50,6 +54,10 @@ struct CharacterStatus {
     class: String,
     gold: f64,
     mushrooms: u32,
+    mount: u16,
+    treasure: f64,
+    instructor: f64,
+    thirst: u32,
     rank: u32,
     status: String,
 }
@@ -146,19 +154,55 @@ async fn update_character_status(session: &SimpleSession, shared_map: &SharedSta
             CurrentAction::Unknown(_) => "UNKNOWN".to_string(),
         };
 
-        let guild = gs.guild.as_ref().map(|g| g.name.clone()).unwrap_or_else(|| "-".to_string());
+        let guild_name =
+            gs.guild.as_ref().map(|g| g.name.clone()).unwrap_or_else(|| "-".to_string());
+
+        let now = chrono::Local::now();
+
+        let active_mount = gs.character.mount.and_then(|m| match gs.character.mount_end {
+            Some(end) if end <= now => None,
+
+            _ => Some(m),
+        });
+
+        let mount = match active_mount {
+            Some(Mount::Dragon) => 50,
+            Some(Mount::Tiger) => 30,
+            Some(Mount::Horse) => 20,
+            Some(Mount::Cow) => 10,
+            None => 0,
+        };
+
+        let (treasure, instructor) = match &gs.guild {
+            Some(guild) => {
+                let raid_bonus = (guild.finished_raids.min(50) * 2) as f64;
+
+                let tre = ((guild.total_treasure_skill as f64 / 5.0) + raid_bonus).min(200.0);
+                let i = ((guild.total_instructor_skill as f64 / 5.0) + raid_bonus).min(200.0);
+
+                (tre, i)
+            }
+
+            None => (0.0, 0.0),
+        };
+
+        let thirst = gs.tavern.thirst_for_adventure_sec / 60;
 
         let mut map = shared_map.lock().await;
 
         let status = CharacterStatus {
             name: gs.character.name.clone(),
-            guild: guild,
+            guild: guild_name,
             level: gs.character.level,
             class: log::get_class_name(gs.character.class).to_string(),
             gold: (gs.character.silver as f64) / 100.0,
             mushrooms: gs.character.mushrooms,
+            mount,
+            treasure,
+            instructor,
+            thirst,
             rank: gs.character.rank,
-            status: status,
+            status,
         };
 
         map.insert(gs.character.name.clone(), status);
@@ -168,11 +212,23 @@ async fn update_character_status(session: &SimpleSession, shared_map: &SharedSta
 fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
     let mut buffer = String::new();
 
-    const WIDTHS: (usize, usize, usize, usize, usize, usize, usize, usize) =
-        (14, 16, 5, 14, 11, 7, 7, 13);
+    const WIDTHS: (
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+        usize,
+    ) = (14, 16, 5, 14, 11, 7, 5, 8, 10, 6, 7, 13);
 
     let border = format!(
-        "+{}+{}+{}+{}+{}+{}+{}+{}+",
+        "+{}+{}+{}+{}+{}+{}+{}+{}+{}+{}+{}+{}+",
         "-".repeat(WIDTHS.0 + 2),
         "-".repeat(WIDTHS.1 + 2),
         "-".repeat(WIDTHS.2 + 2),
@@ -180,16 +236,33 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
         "-".repeat(WIDTHS.4 + 2),
         "-".repeat(WIDTHS.5 + 2),
         "-".repeat(WIDTHS.6 + 2),
-        "-".repeat(WIDTHS.7 + 2)
+        "-".repeat(WIDTHS.7 + 2),
+        "-".repeat(WIDTHS.8 + 2),
+        "-".repeat(WIDTHS.9 + 2),
+        "-".repeat(WIDTHS.10 + 2),
+        "-".repeat(WIDTHS.11 + 2)
     );
 
-    let header = ("CHARACTER NAME", "GUILD", "LEVEL", "CLASS", "GOLD", "SHROOMS", "RANK", "STATUS");
+    let header = (
+        "CHARACTER NAME",
+        "GUILD",
+        "LEVEL",
+        "CLASS",
+        "GOLD",
+        "SHROOMS",
+        "MOUNT",
+        "TREASURE",
+        "INSTRUCTOR",
+        "THIRST",
+        "RANK",
+        "STATUS",
+    );
 
     let _ = writeln!(buffer, "{}", border);
 
     let _ = writeln!(
         buffer,
-        "| {:<w0$} | {:<w1$} | {:<w2$} | {:<w3$} | {:<w4$} | {:<w5$} | {:<w6$} | {:<w7$} |",
+        "| {:<w0$} | {:<w1$} | {:<w2$} | {:<w3$} | {:<w4$} | {:<w5$} | {:<w6$} | {:<w7$} | {:<w8$} | {:<w9$} | {:<w10$} | {:<w11$} |",
         header.0,
         header.1,
         header.2,
@@ -198,6 +271,10 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
         header.5,
         header.6,
         header.7,
+        header.8,
+        header.9,
+        header.10,
+        header.11,
         w0 = WIDTHS.0,
         w1 = WIDTHS.1,
         w2 = WIDTHS.2,
@@ -205,7 +282,11 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
         w4 = WIDTHS.4,
         w5 = WIDTHS.5,
         w6 = WIDTHS.6,
-        w7 = WIDTHS.7
+        w7 = WIDTHS.7,
+        w8 = WIDTHS.8,
+        w9 = WIDTHS.9,
+        w10 = WIDTHS.10,
+        w11 = WIDTHS.11
     );
 
     let _ = writeln!(buffer, "{}", border);
@@ -214,16 +295,43 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
 
     s_chars.sort_by_key(|c| c.rank);
 
-    for CharacterStatus { name, guild, level, class, gold, mushrooms, rank, status } in s_chars {
+    for CharacterStatus {
+        name,
+        guild,
+        level,
+        class,
+        gold,
+        mushrooms,
+        mount,
+        treasure,
+        instructor,
+        thirst,
+        rank,
+        status,
+    } in s_chars
+    {
         let dn = if log::is_hidden() { "****" } else { name.as_str() };
 
         let dg = if log::is_hidden() { "****" } else { guild.as_str() };
 
-        let (n, g, l, c, gd, m, r, s) = (dn, dg, level, class, gold, mushrooms, rank, status);
+        let (n, g, l, c, gd, m, mt, tr, ins, th, r, s) = (
+            dn,
+            dg,
+            level,
+            class,
+            gold,
+            mushrooms,
+            format!("{mount}%"),
+            format!("{treasure:.1}%"),
+            format!("{instructor:.1}%"),
+            thirst,
+            rank,
+            status,
+        );
 
         let _ = writeln!(
             buffer,
-            "| {n:<w0$} | {g:<w1$} | {l:>w2$} | {c:<w3$} | {gd:>w4$.2} | {m:>w5$} | {r:>w6$} | {s:<w7$} |",
+            "| {n:<w0$} | {g:<w1$} | {l:>w2$} | {c:<w3$} | {gd:>w4$.2} | {m:>w5$} | {mt:>w6$} | {tr:>w7$} | {ins:>w8$} | {th:>w9$} | {r:>w10$} | {s:<w11$} |",
             w0 = WIDTHS.0,
             w1 = WIDTHS.1,
             w2 = WIDTHS.2,
@@ -231,7 +339,11 @@ fn format_character_table(map: &HashMap<String, CharacterStatus>) -> String {
             w4 = WIDTHS.4,
             w5 = WIDTHS.5,
             w6 = WIDTHS.6,
-            w7 = WIDTHS.7
+            w7 = WIDTHS.7,
+            w8 = WIDTHS.8,
+            w9 = WIDTHS.9,
+            w10 = WIDTHS.10,
+            w11 = WIDTHS.11
         );
     }
 
