@@ -74,10 +74,10 @@ async fn main() -> Result<(), sf_api::error::SFError> {
 
     log::set_hidden(hidden);
 
-    let username = positional[0];
-    let password = positional[1];
+    let user = positional[0].clone();
+    let pass = positional[1].clone();
 
-    let sessions = match SimpleSession::login_sf_account(&username, &password).await {
+    let sessions = match SimpleSession::login_sf_account(&user, &pass).await {
         Ok(sessions) => {
             println!("ACCOUNT LOGGED IN");
 
@@ -122,7 +122,9 @@ async fn main() -> Result<(), sf_api::error::SFError> {
     for session in sessions {
         tokio::time::sleep(Duration::from_millis(100)).await;
 
-        handles.push(tokio::spawn(process_session(session, shared_map.clone())));
+        let (u, p, sm) = (user.clone(), pass.clone(), shared_map.clone());
+
+        handles.push(tokio::spawn(process_session(session, u, p, sm)));
     }
 
     for handle in handles {
@@ -248,9 +250,19 @@ async fn print_character_table(shared_map: &SharedStatusMap) {
     print!("{}", format_character_table(&map));
 }
 
-async fn process_session(mut session: SimpleSession, shared_map: SharedStatusMap) {
+async fn relogin(user: &str, pass: &str, name: &str) -> Option<SimpleSession> {
+    SimpleSession::login_sf_account(user, pass).await.ok()?.into_iter().find(|s| s.username() == name)
+}
+
+async fn process_session(mut session: SimpleSession, user: String, pass: String, shared_map: SharedStatusMap) {
+    let name = session.username().to_string();
+
     if let Err(err) = session.send_command(Command::Update).await {
-        return eprintln!("ERROR UPDATING SESSION ({:?})", err);
+        log::log(&session, &format!("FAILED TO INITIALIZE SESSION ({:?})", err));
+
+        if let Some(s) = relogin(&user, &pass, &name).await {
+            session = s;
+        }
     }
 
     update_character_status(&session, &shared_map).await;
@@ -262,6 +274,14 @@ async fn process_session(mut session: SimpleSession, shared_map: SharedStatusMap
             log::log(&session, &format!("FAILED TO UPDATE SESSION ({:?})", err));
 
             tokio::time::sleep(Duration::from_secs(300)).await;
+
+            if let Some(s) = relogin(&user, &pass, &name).await {
+                log::log(&session, "SSO CREDENTIALS RENEWED");
+
+                session = s;
+
+                continue;
+            }
 
             continue;
         }
