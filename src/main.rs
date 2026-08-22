@@ -410,21 +410,7 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
 
         update_character_status(&sess, &sm).await;
 
-        let Some(gs) = sess.game_state() else {
-            continue;
-        };
-
-        if let Some(unlockable) = gs.pending_unlocks.first().copied() {
-            log::log(&sess, &format!("UNLOCKING '{:?}' FEATURE", unlockable));
-
-            if let Err(err) = sess.send_command(Command::UnlockFeature { unlockable }).await {
-                log::log(&sess, &format!("FAILED TO UNLOCK FEATURE ({:?})", err));
-            }
-
-            wait_between_actions().await;
-
-            continue;
-        }
+        unlock(&mut sess).await;
 
         guard(&mut sess).await;
 
@@ -478,6 +464,26 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
         }
 
         update_character_status(&sess, &sm).await;
+
+        wait_between_actions().await;
+    }
+}
+
+async fn unlock(session: &mut SimpleSession) {
+    let Some(gs) = session.game_state() else {
+        return;
+    };
+
+    let unlocks = gs.pending_unlocks.clone();
+
+    for unlockable in unlocks {
+        log::log(session, &format!("UNLOCKING '{:?}' FEATURE", unlockable));
+
+        if let Err(err) = session.send_command(Command::UnlockFeature { unlockable }).await {
+            log::log(session, &format!("FAILED TO UNLOCK FEATURE ({:?})", err));
+
+            break;
+        }
 
         wait_between_actions().await;
     }
