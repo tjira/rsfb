@@ -2,7 +2,7 @@ name: Bot
 
 on:
   schedule:
-    - cron: '17 5,12,19 * * *'
+    - cron: '0 5,10,15,20 * * *'
   workflow_dispatch:
 
 jobs:

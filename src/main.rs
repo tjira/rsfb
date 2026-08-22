@@ -381,9 +381,7 @@ async fn relogin(user: &str, pass: &str, name: &str) -> Option<SimpleSession> {
 async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm: SharedStatusMap) {
     let name = sess.username().to_string();
 
-    if let Err(err) = sess.send_command(Command::Update).await {
-        log::log(&sess, &format!("FAILED TO INITIALIZE SESSION ({:?})", err));
-
+    if let Err(_) = sess.send_command(Command::Update).await {
         if let Some(s) = relogin(&user, &pass, &name).await {
             sess = s;
         }
