@@ -180,9 +180,22 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
         }
     }
 
+    let main_attr_pot = PotionType::from(gs.character.class.main_attribute());
+
+    for (idx, active) in gs.character.active_potions.iter().enumerate() {
+        if let Some(ap) = active {
+            let is_main_attribute = ap.typ == main_attr_pot;
+            let is_con = ap.typ == PotionType::Constitution;
+            let is_wing = ap.typ == PotionType::EternalLife;
+
+            if !is_main_attribute && !is_con && !is_wing {
+                return Some((Command::RemovePotion { pos: idx }, Some(ItemType::Potion(*ap))));
+            }
+        }
+    }
+
     let can_sell = gs.character.inventory.count_free_slots() < 3;
 
-    // 1. Perform equip/use/potion actions
     for (bag_pos, slot) in gs.character.inventory.iter() {
         let Some(item) = slot else {
             continue;
@@ -195,7 +208,7 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
         }
 
         if let ItemType::Potion(potion) = item.typ {
-            let is_main_attr = potion.typ == PotionType::from(gs.character.class.main_attribute());
+            let is_main_attr = potion.typ == main_attr_pot;
 
             let is_constitution = potion.typ == PotionType::Constitution;
             let is_winged_bottle = potion.typ == PotionType::EternalLife;
@@ -213,7 +226,7 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
             match active_idx_and_pot {
                 Some((idx, ap)) => {
                     if ap.size < potion.size {
-                        return Some((Command::RemovePotion { pos: idx }, Some(item.typ.clone())));
+                        return Some((Command::RemovePotion { pos: idx }, Some(ItemType::Potion(*ap))));
                     }
 
                     if ap.size > potion.size {
@@ -540,6 +553,12 @@ pub async fn inventory(session: &mut SimpleSession) {
 
             Command::UsePotion { .. } => {
                 let message = format!("DRINKING '{}' POTION", fmt_item(&item_typ));
+
+                log(session, &message);
+            }
+
+            Command::RemovePotion { .. } => {
+                let message = format!("REMOVING '{}' POTION", fmt_item(&item_typ));
 
                 log(session, &message);
             }
