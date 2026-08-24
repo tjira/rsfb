@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
 
 use chrono::Local;
 use rand::thread_rng;
@@ -12,7 +12,17 @@ use sf_api::{
 
 use crate::log::log;
 
-fn pets_next(session: &SimpleSession) -> Option<(Command, String)> {
+fn counter_habitat(opponent_habitat: HabitatType) -> HabitatType {
+    match opponent_habitat {
+        HabitatType::Fire => HabitatType::Water,
+        HabitatType::Earth => HabitatType::Fire,
+        HabitatType::Light => HabitatType::Earth,
+        HabitatType::Shadow => HabitatType::Light,
+        HabitatType::Water => HabitatType::Shadow,
+    }
+}
+
+fn pets_next(session: &SimpleSession, vo: &HashSet<u32>) -> Option<(Command, Option<String>)> {
     let Some(gs) = session.game_state() else {
         return None;
     };
@@ -51,7 +61,37 @@ fn pets_next(session: &SimpleSession) -> Option<(Command, String)> {
 
             let cmd = Command::PetFeed { pet_id: pet_to_feed.id, total_fruit_count };
 
-            return Some((cmd, msg));
+            return Some((cmd, Some(msg)));
+        }
+    }
+
+    let mut can_fight_opponent = true;
+
+    if let Some(next_free) = pets.opponent.next_free_battle {
+        if Local::now() < next_free + chrono::Duration::seconds(5) {
+            can_fight_opponent = false;
+        }
+    }
+
+    if can_fight_opponent && pets.opponent.id != 0 {
+        if let Some(opponent_habitat) = pets.opponent.habitat {
+            let attackh = counter_habitat(opponent_habitat);
+
+            let habitat = &pets.habitats[attackh];
+
+            if !habitat.battled_opponent && habitat.pets.iter().any(|p| p.level > 0) {
+                let msg = format!("ATTACKING PET OPPONENT WITH '{:?}' HABITAT", attackh);
+
+                let opponent_id = pets.opponent.id;
+
+                let cmd = Command::FightPetOpponent { opponent_id, habitat: attackh };
+
+                return Some((cmd, Some(msg)));
+            }
+        } else if !vo.contains(&pets.opponent.id) {
+            let cmd = Command::ViewPlayer { ident: pets.opponent.id.to_string() };
+
+            return Some((cmd, None));
         }
     }
 
@@ -85,7 +125,7 @@ fn pets_next(session: &SimpleSession) -> Option<(Command, String)> {
 
             let cmd = Command::FightPetDungeon { use_mush, habitat, enemy_pos, player_pet_id };
 
-            return Some((cmd, msg));
+            return Some((cmd, Some(msg)));
         }
     }
 
@@ -101,12 +141,22 @@ async fn wait_between_actions() {
 }
 
 pub async fn pets(session: &mut SimpleSession) {
+    let mut vo = HashSet::new();
+
     loop {
-        let Some((cmd, msg)) = pets_next(session) else {
+        let Some((cmd, msg)) = pets_next(session, &vo) else {
             break;
         };
 
-        log(session, &msg);
+        if let Command::ViewPlayer { ref ident } = cmd {
+            if let Ok(id) = ident.parse::<u32>() {
+                vo.insert(id);
+            }
+        }
+
+        if let Some(msg) = msg {
+            log(session, &msg);
+        }
 
         if let Err(err) = session.send_command(cmd).await {
             log(session, &format!("PETS SEND COMMAND ERROR ({:?})", err));
