@@ -26,6 +26,7 @@ mod guard;
 mod guild;
 mod inventory;
 mod log;
+mod mail;
 mod mount;
 mod pets;
 mod shop;
@@ -40,6 +41,7 @@ use fortress::{fortress, underworld};
 use guard::guard;
 use guild::guild;
 use inventory::inventory;
+use mail::mail;
 use mount::mount;
 use pets::pets;
 use shop::shop;
@@ -388,6 +390,8 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
     }
 
     update_character_status(&sess, &sm).await;
+
+    mail(&mut sess).await;
 
     loop {
         let hour = chrono::Local::now().hour();

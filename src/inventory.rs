@@ -226,7 +226,9 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
             match active_idx_and_pot {
                 Some((idx, ap)) => {
                     if ap.size < potion.size {
-                        return Some((Command::RemovePotion { pos: idx }, Some(ItemType::Potion(*ap))));
+                        let cmd = Command::RemovePotion { pos: idx };
+
+                        return Some((cmd, Some(ItemType::Potion(*ap))));
                     }
 
                     if ap.size > potion.size {
