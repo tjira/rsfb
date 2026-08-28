@@ -6,11 +6,36 @@ use rand_distr::{Distribution, Normal};
 
 use sf_api::{
     command::Command,
+    gamestate::NormalCost,
     gamestate::guild::{BattlesJoined, GuildSkill},
     session::SimpleSession,
 };
 
 use crate::log::log;
+
+fn can_afford_guild_skill(cost: NormalCost, silver: u64, mushrooms: u32) -> bool {
+    if cost.silver > silver {
+        return false;
+    }
+
+    let mm = crate::constant::MIN_MUSHROOM_RESERVE;
+
+    if cost.mushrooms > 0 {
+        let cost_mushrooms = cost.mushrooms as u32;
+
+        if mushrooms.saturating_sub(cost_mushrooms) < mm {
+            return false;
+        }
+
+        let gum = crate::constant::GUILD_UPGRADE_MAX_MUSHROOM_RATIO;
+
+        if (cost.mushrooms as f64) >= (mushrooms as f64) * gum {
+            return false;
+        }
+    }
+
+    true
+}
 
 fn guild_next(session: &SimpleSession) -> Option<Command> {
     let Some(gs) = session.game_state() else {
@@ -21,10 +46,24 @@ fn guild_next(session: &SimpleSession) -> Option<Command> {
         return None;
     };
 
-    for skill in [GuildSkill::Treasure, GuildSkill::Instructor, GuildSkill::Pet] {
+    let (ins, trs, pet) = (GuildSkill::Instructor, GuildSkill::Treasure, GuildSkill::Pet);
+
+    let candidates = match guild.own_treasure_skill.cmp(&guild.own_instructor_skill) {
+        std::cmp::Ordering::Less => vec![trs, pet],
+        std::cmp::Ordering::Greater => vec![ins, pet],
+        std::cmp::Ordering::Equal => vec![ins, trs, pet],
+    };
+
+    for skill in candidates {
+        let can_pet = guild.pet_max_lvl > 0 && guild.own_pet_lvl < guild.pet_max_lvl;
+
+        if skill == GuildSkill::Pet && !can_pet {
+            continue;
+        }
+
         let cost = guild.upgrade_price[skill];
 
-        if cost.mushrooms == 0 && cost.silver <= gs.character.silver {
+        if can_afford_guild_skill(cost, gs.character.silver, gs.character.mushrooms) {
             let current = match skill {
                 GuildSkill::Treasure => guild.own_treasure_skill,
                 GuildSkill::Instructor => guild.own_instructor_skill,
