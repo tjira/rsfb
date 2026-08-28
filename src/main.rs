@@ -115,7 +115,9 @@ async fn main() -> Result<(), sf_api::error::SFError> {
 
             print_character_table(&shared_map).await;
 
-            let mut interval = tokio::time::interval(Duration::from_secs(300));
+            let isec = constant::STATUS_TABLE_INTERVAL_SECS;
+
+            let mut interval = tokio::time::interval(Duration::from_secs(isec));
 
             interval.tick().await;
 

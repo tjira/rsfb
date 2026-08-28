@@ -57,7 +57,7 @@ fn skill_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
-    if character.silver > 10 * max_shop_price {
+    if character.silver > crate::constant::SKILL_GOLD_SAFETY_MULTIPLIER * max_shop_price {
         let next_value = character.attribute_basis[best_attr] + 1;
 
         return Some(Command::UpgradeSkill { attribute: best_attr, next_attribute: next_value });

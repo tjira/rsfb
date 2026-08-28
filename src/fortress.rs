@@ -76,7 +76,9 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
     };
 
     let is_collect_time = fortress.last_collectable_updated.map_or(true, |lu| {
-        let (interval, window) = (chrono::Duration::minutes(30), chrono::Duration::minutes(2));
+        let t1 = chrono::Duration::minutes(crate::constant::HARVEST_CHECK_INTERVAL_MINS);
+
+        let (interval, window) = (t1, chrono::Duration::minutes(2));
 
         let time_since_update = Local::now() - lu;
 
@@ -341,7 +343,9 @@ fn underworld_next(session: &SimpleSession) -> Option<Command> {
     };
 
     let is_collect_time = underworld.last_collectable_update.map_or(true, |lu| {
-        let (interval, window) = (chrono::Duration::minutes(30), chrono::Duration::minutes(2));
+        let t1 = chrono::Duration::minutes(crate::constant::HARVEST_CHECK_INTERVAL_MINS);
+
+        let (interval, window) = (t1, chrono::Duration::minutes(2));
 
         let time_since_update = Local::now() - lu;
 

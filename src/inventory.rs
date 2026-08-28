@@ -194,7 +194,9 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
         }
     }
 
-    let can_sell = gs.character.inventory.count_free_slots() < 3;
+    let fs = crate::constant::INVENTORY_MIN_FREE_SLOTS;
+
+    let can_sell = gs.character.inventory.count_free_slots() < fs;
 
     for (bag_pos, slot) in gs.character.inventory.iter() {
         let Some(item) = slot else {
@@ -389,7 +391,7 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
                 if item.typ.equipment_slot().is_some() {
                     let reward = item.dismantle_reward();
 
-                    if reward.arcane > 1000 {
+                    if reward.arcane > crate::constant::BLACKSMITH_MIN_ARCANE_DISMANTLE {
                         let item_pos = PlayerItemPosition::from(bag_pos);
 
                         let (item_ident, a) = (item.command_ident(), BlacksmithAction::Dismantle);
