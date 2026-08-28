@@ -196,7 +196,23 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
-    let is_gem_searching = fortress.gem_search.finish.is_some();
+    let fortress_level = fortress.buildings.get(FortressBuildingType::Fortress).level;
+
+    let (hok_cost, hkl) = (fortress.hall_of_knights_upgrade_price, fortress.hall_of_knights_level);
+
+    let cond = hkl < fortress.building_max_lvl as u16 && (hok_cost.wood > 0 || hok_cost.stone > 0);
+
+    if gs.guild.is_some() && hkl < fortress_level && cond {
+        let wood_c = fortress.resources.get(FortressResourceType::Wood);
+        let stone = fortress.resources.get(FortressResourceType::Stone);
+
+        let ew = hok_cost.wood <= wood_c.current;
+        let es = hok_cost.stone <= stone.current;
+
+        if ew && es && hok_cost.silver <= gs.character.silver {
+            return Some(Command::FortressUpgradeHallOfKnights);
+        }
+    }
 
     if fortress.building_upgrade.target.is_none() {
         let mut buildable = Vec::new();
@@ -218,7 +234,7 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
 
     let is_gem_upgrading = fortress.building_upgrade.target == Some(FortressBuildingType::GemMine);
 
-    if gem_mine.level > 0 && !is_gem_searching && !is_gem_upgrading {
+    if gem_mine.level > 0 && !fortress.gem_search.finish.is_some() && !is_gem_upgrading {
         let cost = fortress.gem_search.cost;
 
         let wood_c = fortress.resources.get(FortressResourceType::Wood);
@@ -278,6 +294,10 @@ pub async fn fortress(session: &mut SimpleSession) {
 
             Command::FortressUpgradeUnit { unit } => {
                 log(session, &format!("UPGRADING UNIT '{:?}' IN SMITHY", unit));
+            }
+
+            Command::FortressUpgradeHallOfKnights => {
+                log(session, "UPGRADING HALL OF KNIGHTS IN FORTRESS");
             }
 
             Command::FortressGemStoneSearch => {
