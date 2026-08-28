@@ -37,6 +37,17 @@ fn can_afford_guild_skill(cost: NormalCost, silver: u64, mushrooms: u32) -> bool
     true
 }
 
+fn can_afford_both_guild_skills(c1: NormalCost, c2: NormalCost, silver: u64, mush: u32) -> bool {
+    if !can_afford_guild_skill(c1, silver, mush) {
+        return false;
+    }
+
+    let remaining_silver = silver.saturating_sub(c1.silver);
+    let rema_mus = mush.saturating_sub(c1.mushrooms as u32);
+
+    can_afford_guild_skill(c2, remaining_silver, rema_mus)
+}
+
 fn guild_next(session: &SimpleSession) -> Option<Command> {
     let Some(gs) = session.game_state() else {
         return None;
@@ -51,7 +62,16 @@ fn guild_next(session: &SimpleSession) -> Option<Command> {
     let candidates = match guild.own_treasure_skill.cmp(&guild.own_instructor_skill) {
         std::cmp::Ordering::Less => vec![trs, pet],
         std::cmp::Ordering::Greater => vec![ins, pet],
-        std::cmp::Ordering::Equal => vec![ins, trs, pet],
+        std::cmp::Ordering::Equal => {
+            let (ci, ct) = (guild.upgrade_price[ins], guild.upgrade_price[trs]);
+            let (silver, mushr) = (gs.character.silver, gs.character.mushrooms);
+
+            if can_afford_both_guild_skills(ci, ct, silver, mushr) {
+                vec![ins, pet]
+            } else {
+                vec![pet]
+            }
+        }
     };
 
     for skill in candidates {
