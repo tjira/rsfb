@@ -506,9 +506,7 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
                     let (em, ea) = (bs.metal >= costs.metal + tsm, bs.arcane >= costs.arcane + tsa);
 
                     if em && ea {
-                        let (ii, action) = (eq_item.command_ident(), BlacksmithAction::Upgrade);
-
-                        let cmd = Command::Blacksmith { item_pos, action, item_ident: ii };
+                        let cmd = Command::BlacksmithUpgradeItem { item_pos, amount: 1 };
 
                         return Some((cmd, Some(eq_item.typ.clone())));
                     }
@@ -587,10 +585,8 @@ pub async fn inventory(session: &mut SimpleSession) {
                 log(session, "UNLOCKING TOILET WITH KEY");
             }
 
-            Command::Blacksmith { action, .. } => {
-                let (a, i) = (action, fmt_item(&item_typ));
-
-                let message = format!("BLACKSMITH '{:?}' ON '{}'", a, i);
+            Command::BlacksmithUpgradeItem { .. } => {
+                let message = format!("BLACKSMITH UPGRADE ON '{}'", fmt_item(&item_typ));
 
                 log(session, &message);
             }
