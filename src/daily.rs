@@ -44,10 +44,6 @@ fn daily_next(session: &SimpleSession) -> Option<Command> {
 
     if gs.character.level >= 10 {
         match gs.hellevator.status() {
-            HellevatorStatus::RewardClaimable => {
-                return Some(Command::HellevatorClaimFinal);
-            }
-
             HellevatorStatus::Active(hellevator) => {
                 if hellevator.rewards_yesterday.as_ref().is_some_and(|r| r.claimable()) {
                     return Some(Command::HellevatorClaimDailyYesterday);
@@ -112,6 +108,8 @@ pub async fn daily(session: &mut SimpleSession) {
             let message = format!("DAILY SEND COMMAND ERROR: {:?}", err);
 
             log(session, &message);
+
+            let _ = session.send_command(Command::Update).await;
 
             break;
         }
