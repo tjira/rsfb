@@ -23,4 +23,4 @@ jobs:
         env:
           SFGAME_USERNAME: ${{secrets.SFGAME_USERNAME}}
           SFGAME_PASSWORD: ${{secrets.SFGAME_PASSWORD}}
-        run: timeout -k 10s 1h ./target/release/rsfb "$SFGAME_USERNAME" "$SFGAME_PASSWORD" --hidden || [ $? -eq 124 ]
+        run: timeout -k 10s 90m ./target/release/rsfb "$SFGAME_USERNAME" "$SFGAME_PASSWORD" --hidden || [ $? -eq 124 ]
