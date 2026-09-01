@@ -34,11 +34,7 @@ pub async fn mail(session: &mut SimpleSession) {
 
         log(session, &format!("READING MESSAGE FROM '{display_from}' ({display_tit})"));
 
-        let cmd_name = "PlayerMessageView".to_string();
-
-        let cmd = Command::Custom { cmd_name, arguments: vec![msg_id.to_string()] };
-
-        if let Err(err) = session.send_command(cmd).await {
+        if let Err(err) = session.send_command(Command::MessageOpen { msg_id }).await {
             log(session, &format!("FAILED TO READ MESSAGE ({:?})", err));
         }
 
