@@ -3,7 +3,7 @@ use std::time::Duration;
 use rand::thread_rng;
 use rand_distr::{Distribution, Normal};
 
-use sf_api::{command::Command, session::SimpleSession};
+use sf_api::{command::Command, gamestate::social::MessageType, session::SimpleSession};
 
 use crate::log::log;
 
@@ -22,19 +22,23 @@ pub async fn mail(session: &mut SimpleSession) {
 
     let mut unread_messages = Vec::new();
 
-    for (pos, msg) in gs.mail.inbox.iter().enumerate() {
-        if !msg.read {
-            unread_messages.push((pos, msg.from.clone(), msg.title.clone()));
+    for msg in &gs.mail.inbox {
+        if !msg.read && matches!(msg.msg_typ, MessageType::Normal) {
+            unread_messages.push((msg.msg_id, msg.from.clone(), msg.title.clone()));
         }
     }
 
-    for (pos, from, title) in unread_messages {
+    for (msg_id, from, title) in unread_messages {
         let display_from = if crate::log::is_hidden() { "****" } else { &from };
         let display_tit = if crate::log::is_hidden() { "****" } else { &title };
 
         log(session, &format!("READING MESSAGE FROM '{display_from}' ({display_tit})"));
 
-        if let Err(err) = session.send_command(Command::MessageOpen { pos: pos as i32 }).await {
+        let cmd_name = "PlayerMessageView".to_string();
+
+        let cmd = Command::Custom { cmd_name, arguments: vec![msg_id.to_string()] };
+
+        if let Err(err) = session.send_command(cmd).await {
             log(session, &format!("FAILED TO READ MESSAGE ({:?})", err));
         }
 
