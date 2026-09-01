@@ -5,6 +5,7 @@ use rand_distr::{Distribution, Normal};
 
 use sf_api::{
     command::{Command, FortunePayment},
+    gamestate::social::ClaimableStatus,
     gamestate::unlockables::HellevatorStatus,
     session::SimpleSession,
 };
@@ -57,6 +58,12 @@ fn daily_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
+    for claimable in &gs.mail.claimables {
+        if claimable.status != ClaimableStatus::Claimed {
+            return Some(Command::ClaimableClaim { msg_id: claimable.msg_id });
+        }
+    }
+
     if let Some(next) = gs.specials.wheel.next_free_spin {
         if now >= next {
             return Some(Command::SpinWheelOfFortune { payment: FortunePayment::FreeTurn });
@@ -87,6 +94,20 @@ pub async fn daily(session: &mut SimpleSession) {
 
             Command::SpinWheelOfFortune { payment: FortunePayment::FreeTurn } => {
                 log(session, "SPINNING WHEEL OF FORTUNE (FREE SPIN)");
+            }
+
+            Command::ClaimableClaim { msg_id } => {
+                let mut name = "UNKNOWN";
+
+                if let Some(gs) = session.game_state() {
+                    if let Some(cl) = gs.mail.claimables.iter().find(|c| c.msg_id == *msg_id) {
+                        name = cl.name.as_str();
+                    }
+                }
+
+                let display_name = if crate::log::is_hidden() { "****" } else { name };
+
+                log(session, &format!("COLLECTING MAIL REWARD '{display_name}'"));
             }
 
             Command::HellevatorClaimDaily => {
