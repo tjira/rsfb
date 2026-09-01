@@ -83,14 +83,37 @@ fn s_eq_comp(session: &SimpleSession, it: &Item, slot: EquipmentSlot, cc: Compan
     a_new > a_old
 }
 
+fn target_equipment_slot(session: &SimpleSession, it: &Item) -> Option<EquipmentSlot> {
+    let gs = session.game_state()?;
+    let slot = it.typ.equipment_slot()?;
+
+    if gs.character.class == Class::Assassin && it.typ.is_weapon() {
+        if should_equip(session, it, EquipmentSlot::Weapon) {
+            return Some(EquipmentSlot::Weapon);
+        }
+
+        if should_equip(session, it, EquipmentSlot::Shield) {
+            return Some(EquipmentSlot::Shield);
+        }
+
+        return None;
+    }
+
+    if should_equip(session, it, slot) {
+        return Some(slot);
+    }
+
+    None
+}
+
 pub(crate) fn is_equippable(session: &SimpleSession, item: &Item) -> bool {
+    if target_equipment_slot(session, item).is_some() {
+        return true;
+    }
+
     let Some(slot) = item.typ.equipment_slot() else {
         return false;
     };
-
-    if should_equip(session, item, slot) {
-        return true;
-    }
 
     for companion in [CompanionClass::Warrior, CompanionClass::Mage, CompanionClass::Scout] {
         if s_eq_comp(session, item, slot, companion) {
@@ -350,15 +373,15 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
             continue;
         }
 
-        let Some(slot) = item.typ.equipment_slot() else {
-            continue;
-        };
-
-        if should_equip(session, item, slot) {
-            let cmd = Command::Equip { from_pos, to_slot: slot, item_ident };
+        if let Some(to_slot) = target_equipment_slot(session, item) {
+            let cmd = Command::Equip { from_pos, to_slot, item_ident };
 
             return Some((cmd, Some(item.typ.clone())));
         }
+
+        let Some(slot) = item.typ.equipment_slot() else {
+            continue;
+        };
 
         for companion in [CompanionClass::Warrior, CompanionClass::Mage, CompanionClass::Scout] {
             if s_eq_comp(session, item, slot, companion) {
@@ -447,7 +470,7 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
         let (mut tsm, mut tsa) = (0, 0);
 
         for slot in EquipmentSlot::iter() {
-            if slot == EquipmentSlot::Shield {
+            if slot == EquipmentSlot::Shield && gs.character.class != Class::Assassin {
                 continue;
             }
 
@@ -463,7 +486,7 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
         for slot in EquipmentSlot::iter() {
             let item_pos = PlayerItemPosition::from(slot);
 
-            if slot == EquipmentSlot::Shield {
+            if slot == EquipmentSlot::Shield && gs.character.class != Class::Assassin {
                 continue;
             }
 
@@ -486,7 +509,7 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
             }
         }
 
-        let slots_to_upgrade = [
+        let mut slots_to_upgrade = vec![
             EquipmentSlot::Weapon,
             EquipmentSlot::BreastPlate,
             EquipmentSlot::FootWear,
@@ -497,6 +520,10 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
             EquipmentSlot::Ring,
             EquipmentSlot::Talisman,
         ];
+
+        if gs.character.class == Class::Assassin {
+            slots_to_upgrade.push(EquipmentSlot::Shield);
+        }
 
         for slot in slots_to_upgrade {
             let item_pos = PlayerItemPosition::from(slot);
