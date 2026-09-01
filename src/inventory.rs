@@ -585,6 +585,12 @@ pub async fn inventory(session: &mut SimpleSession) {
                 log(session, "UNLOCKING TOILET WITH KEY");
             }
 
+            Command::Blacksmith { action, .. } => {
+                let message = format!("BLACKSMITH '{:?}' ON '{}'", action, fmt_item(&item_typ));
+
+                log(session, &message);
+            }
+
             Command::BlacksmithUpgradeItem { .. } => {
                 let message = format!("BLACKSMITH UPGRADE ON '{}'", fmt_item(&item_typ));
 
