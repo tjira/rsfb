@@ -9,7 +9,7 @@ use sf_api::{
     command::{AttributeType, BlacksmithAction, Command},
     gamestate::character::Class,
     gamestate::dungeons::CompanionClass,
-    gamestate::items::{EquipmentSlot, GemSlot, GemType, Item},
+    gamestate::items::{BlacksmithPayment, EquipmentSlot, GemSlot, GemType, Item},
     gamestate::items::{ItemCommandIdent, ItemPosition, ItemType},
     gamestate::items::{PlayerItemPosition, PotionType},
     session::SimpleSession,
@@ -186,6 +186,43 @@ fn matches_attr(gem_typ: GemType, attr_typ: AttributeType) -> bool {
     }
 
     false
+}
+
+fn socket_costs(it: &Item) -> Option<BlacksmithPayment> {
+    if it.gem_slot.is_some() || it.equipment_ident().is_none() {
+        return None;
+    }
+
+    let item_stats = it.attributes.values().filter(|a| **a > 0).count();
+
+    let mut price = f64::from(*it.attributes.values().max().unwrap_or(&0));
+
+    if item_stats >= 4 {
+        price *= 1.2;
+    }
+
+    if it.class.is_some_and(|a| a == Class::Scout || a == Class::Mage) && it.typ.is_weapon() {
+        price /= 2.0;
+    }
+
+    if item_stats == 1 && price > 66.0 {
+        price = (price * 0.75).ceil();
+    }
+
+    price = price.round().powf(1.2).floor();
+
+    let metal = (price * 5.0).floor() as u64;
+
+    let arcane_factor = match item_stats {
+        0 => 0.25,
+        1 => 0.25,
+        2 => 0.50,
+        _ => 1.00,
+    };
+
+    let arcane = 10.max(((price * arcane_factor).floor() as u64) * 10);
+
+    Some(BlacksmithPayment { metal, arcane })
 }
 
 fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)> {
@@ -475,10 +512,8 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
             }
 
             if let Some(eq_item) = gs.character.equipment.0[slot].as_ref() {
-                if eq_item.gem_slot.is_none() {
-                    let level = eq_item.item_quality as u64;
-
-                    (tsm, tsa) = (tsm + level * 10, tsa + (level * 5 / 10) * 10);
+                if let Some(costs) = socket_costs(eq_item) {
+                    (tsm, tsa) = (tsm + costs.metal, tsa + costs.arcane);
                 }
             }
         }
@@ -493,12 +528,8 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
             let su = BlacksmithAction::SocketUpgrade;
 
             if let Some(eq_item) = gs.character.equipment.0[slot].as_ref() {
-                if eq_item.gem_slot.is_none() {
-                    let level = eq_item.item_quality as u64;
-
-                    let (metal_cost, arcane_cost) = (level * 10, (level * 5 / 10) * 10);
-
-                    if bs.metal >= metal_cost && bs.arcane >= arcane_cost {
+                if let Some(costs) = socket_costs(eq_item) {
+                    if bs.metal >= costs.metal && bs.arcane >= costs.arcane {
                         let item_ident = eq_item.command_ident();
 
                         let cmd = Command::Blacksmith { item_pos, action: su, item_ident };
