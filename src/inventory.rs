@@ -61,6 +61,10 @@ fn s_eq_comp(session: &SimpleSession, it: &Item, slot: EquipmentSlot, cc: Compan
         return false;
     };
 
+    if companions[cc].level == 0 {
+        return false;
+    }
+
     let attr = Class::from(cc).main_attribute();
 
     let Some(eq) = companions[cc].equipment.0[slot].as_ref() else {
@@ -366,6 +370,10 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
                 };
 
                 for comp in comps {
+                    if companions[comp].level == 0 {
+                        continue;
+                    }
+
                     let player_attr = Class::from(comp).main_attribute();
                     let matches_att = matches_attr(gem.typ, player_attr);
 

@@ -33,7 +33,13 @@ fn get_next_enchant_action(gs: &GameState) -> Option<(Command, String)> {
                 let comps = [CompanionClass::Warrior, CompanionClass::Mage, CompanionClass::Scout];
 
                 for companion in comps {
-                    if let Some(item) = &companions[companion].equipment.0[slot] {
+                    let comp = &companions[companion];
+
+                    if comp.level == 0 {
+                        continue;
+                    }
+
+                    if let Some(item) = &comp.equipment.0[slot] {
                         let cost = witch.enchantment_price;
 
                         if item.enchantment != Some(e) && gs.character.silver >= cost {
