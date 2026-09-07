@@ -42,3 +42,6 @@ pub const GUILD_UPGRADE_MAX_MUSHROOM_RATIO: f64 = 0.10;
 
 /// Maximum number of total spins allowed per day on the Wheel of Fortune (Dr. Abawuwu).
 pub const WHEEL_MAX_DAILY_SPINS: u8 = 20;
+
+/// Maximum number of total spins allowed per day on the Wheel of Fortune (Dr. Abawuwu) during the Lucky Day event.
+pub const WHEEL_MAX_DAILY_SPINS_LUCKY_DAY_EVENT: u8 = 40;
