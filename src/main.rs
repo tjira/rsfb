@@ -421,7 +421,7 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
         guard(&mut sess).await;
 
         if hour < constant::EXPEDITION_START_HOUR {
-            wait_between_actions().await;
+            wait_between_actions(10000.0, 1200.0, 8000.0, 15000.0).await;
 
             continue;
         }
@@ -441,7 +441,7 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
         if gs.character.inventory.count_free_slots() == 0 {
             log::log(&sess, "FULL INVENTORY, SKIPPING EXPEDITIONS, DUNGEONS AND DAILY REWARDS");
 
-            wait_between_actions().await;
+            wait_between_actions(10000.0, 1200.0, 8000.0, 15000.0).await;
 
             continue;
         }
@@ -471,7 +471,7 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
 
         update_character_status(&sess, &sm).await;
 
-        wait_between_actions().await;
+        wait_between_actions(10000.0, 1200.0, 8000.0, 15000.0).await;
     }
 }
 
@@ -491,13 +491,11 @@ async fn unlock(session: &mut SimpleSession) {
             break;
         }
 
-        wait_between_actions().await;
+        wait_between_actions(10000.0, 1200.0, 8000.0, 15000.0).await;
     }
 }
 
-async fn wait_between_actions() {
-    let (mean, std, min, max): (f64, f64, f64, f64) = (10000.0, 1200.0, 8000.0, 15000.0);
-
+pub async fn wait_between_actions(mean: f64, std: f64, min: f64, max: f64) {
     let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
 
     tokio::time::sleep(Duration::from_millis(number.clamp(min, max) as u64)).await;

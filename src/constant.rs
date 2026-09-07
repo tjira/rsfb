@@ -45,3 +45,18 @@ pub const WHEEL_MAX_DAILY_SPINS: u8 = 20;
 
 /// Maximum number of total spins allowed per day on the Wheel of Fortune (Dr. Abawuwu) during the Lucky Day event.
 pub const WHEEL_MAX_DAILY_SPINS_LUCKY_DAY_EVENT: u8 = 40;
+
+/// Target basis ratio weight for the character's main class attribute.
+pub const SKILL_WEIGHT_MAIN_ATTRIBUTE: f64 = 100.0;
+
+/// Target basis ratio weight for Constitution.
+pub const SKILL_WEIGHT_CONSTITUTION: f64 = 80.0;
+
+/// Target basis ratio weight for Luck.
+pub const SKILL_WEIGHT_LUCK: f64 = 40.0;
+
+/// Target basis ratio weight for secondary (non-main) attributes.
+pub const SKILL_WEIGHT_SECONDARY_ATTRIBUTE: f64 = 10.0;
+
+/// Capacity ratio required before harvesting Fortress and Underworld resources (e.g. 0.50 for 50% capacity).
+pub const FORTRESS_HARVEST_STORAGE_RATIO: f64 = 0.50;

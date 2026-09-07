@@ -1,8 +1,3 @@
-use std::time::Duration;
-
-use rand::thread_rng;
-use rand_distr::{Distribution, Normal};
-
 use strum::IntoEnumIterator;
 
 use sf_api::{
@@ -584,14 +579,6 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
     None
 }
 
-async fn wait_between_actions() {
-    let (mean, std, min, max): (f64, f64, f64, f64) = (2800.0, 1000.0, 1000.0, 6000.0);
-
-    let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
-
-    tokio::time::sleep(Duration::from_millis(number.clamp(min, max) as u64)).await;
-}
-
 pub async fn inventory(session: &mut SimpleSession) {
     while let Some((cmd, item_typ)) = inventory_next(session) {
         let fmt_item = |t: &Option<ItemType>| {
@@ -672,6 +659,6 @@ pub async fn inventory(session: &mut SimpleSession) {
             break;
         }
 
-        wait_between_actions().await;
+        crate::wait_between_actions(2800.0, 1000.0, 1000.0, 6000.0).await;
     }
 }

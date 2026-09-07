@@ -1,9 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
-use std::time::Duration;
 
-use rand::{Rng, thread_rng};
-use rand_distr::{Distribution, Normal};
+use rand::Rng;
 
 use sf_api::{
     command::Command,
@@ -154,7 +152,7 @@ pub async fn expedition(session: &mut SimpleSession) {
             break;
         }
 
-        wait_between_actions().await;
+        crate::wait_between_actions(3500.0, 1500.0, 1200.0, 8000.0).await;
     }
 }
 
@@ -164,14 +162,6 @@ fn get_waits_map() -> std::sync::MutexGuard<'static, HashMap<String, i64>> {
 
 fn get_last_wait(username: &str) -> i64 {
     get_waits_map().get(username).copied().unwrap_or(0)
-}
-
-async fn wait_between_actions() {
-    let (mean, std, min, max): (f64, f64, f64, f64) = (3500.0, 1500.0, 1200.0, 8000.0);
-
-    let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
-
-    tokio::time::sleep(Duration::from_millis(number.clamp(min, max) as u64)).await;
 }
 
 pub fn can_drink_beer(session: &SimpleSession) -> bool {

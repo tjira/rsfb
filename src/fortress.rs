@@ -1,10 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
-use std::time::Duration;
 
 use chrono::Local;
-use rand::thread_rng;
-use rand_distr::{Distribution, Normal};
 use strum::IntoEnumIterator;
 
 use sf_api::{
@@ -85,12 +82,14 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
         time_since_update >= interval || time_since_update < window
     });
 
+    let ratio = crate::constant::FORTRESS_HARVEST_STORAGE_RATIO;
+
     if is_startup || is_collect_time {
         let wood = fortress.resources.get(FortressResourceType::Wood);
 
         let can_w = fortress.building_upgrade.target != Some(FortressBuildingType::WoodcuttersHut);
 
-        let w_enough = get_collectable(wood) >= wood.production.limit / 2;
+        let w_enough = (get_collectable(wood) as f64) >= (wood.production.limit as f64) * ratio;
 
         if w_enough && wood.production.limit > 0 && wood.current < wood.limit && can_w {
             return Some(Command::FortressGather { resource: FortressResourceType::Wood });
@@ -100,7 +99,7 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
 
         let can_stone = fortress.building_upgrade.target != Some(FortressBuildingType::Quarry);
 
-        let s_enough = get_collectable(stone) >= stone.production.limit / 2;
+        let s_enough = (get_collectable(stone) as f64) >= (stone.production.limit as f64) * ratio;
 
         if s_enough && stone.production.limit > 0 && stone.current < stone.limit && can_stone {
             return Some(Command::FortressGather { resource: FortressResourceType::Stone });
@@ -110,7 +109,7 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
 
         let can_exp = fortress.building_upgrade.target != Some(FortressBuildingType::Academy);
 
-        let e_enough = get_collectable(exp) >= exp.production.limit / 2;
+        let e_enough = (get_collectable(exp) as f64) >= (exp.production.limit as f64) * ratio;
 
         if e_enough && exp.production.limit > 0 && can_exp {
             return Some(Command::FortressGather { resource: FortressResourceType::Experience });
@@ -313,7 +312,7 @@ pub async fn fortress(session: &mut SimpleSession) {
             break;
         }
 
-        wait_between_actions().await;
+        crate::wait_between_actions(3000.0, 1200.0, 1000.0, 7000.0).await;
     }
 }
 
@@ -372,12 +371,16 @@ fn underworld_next(session: &SimpleSession) -> Option<Command> {
         time_since_update >= interval || time_since_update < window
     });
 
+    let ratio = crate::constant::FORTRESS_HARVEST_STORAGE_RATIO;
+
+    let (sl, th) = (UnderworldResourceType::Silver, UnderworldResourceType::ThirstForAdventure);
+
     if is_startup || is_collect_time {
         let souls = underworld.production.get(UnderworldResourceType::Souls);
 
         let can_s = underworld.upgrade_building != Some(UnderworldBuildingType::SoulExtractor);
 
-        let se = get_col(UnderworldResourceType::Souls) >= souls.limit / 2;
+        let se = (get_col(UnderworldResourceType::Souls) as f64) >= (souls.limit as f64) * ratio;
 
         if se && souls.limit > 0 && underworld.souls_current < underworld.souls_limit && can_s {
             return Some(Command::UnderworldCollect { resource: UnderworldResourceType::Souls });
@@ -387,7 +390,7 @@ fn underworld_next(session: &SimpleSession) -> Option<Command> {
 
         let can_silver = underworld.upgrade_building != Some(UnderworldBuildingType::GoldPit);
 
-        let silver_enough = get_col(UnderworldResourceType::Silver) >= silver.limit / 2;
+        let silver_enough = (get_col(sl) as f64) >= (silver.limit as f64) * ratio;
 
         if silver_enough && silver.limit > 0 && can_silver {
             return Some(Command::UnderworldCollect { resource: UnderworldResourceType::Silver });
@@ -397,7 +400,7 @@ fn underworld_next(session: &SimpleSession) -> Option<Command> {
 
         let can_t = underworld.upgrade_building != Some(UnderworldBuildingType::Adventuromatic);
 
-        let thirst_enough = get_col(UnderworldResourceType::ThirstForAdventure) >= thirst.limit / 2;
+        let thirst_enough = (get_col(th) as f64) >= (thirst.limit as f64) * ratio;
 
         if thirst_enough && thirst.limit > 0 && can_t {
             let toa = UnderworldResourceType::ThirstForAdventure;
@@ -531,14 +534,6 @@ pub async fn underworld(session: &mut SimpleSession) {
             }
         }
 
-        wait_between_actions().await;
+        crate::wait_between_actions(3000.0, 1200.0, 1000.0, 7000.0).await;
     }
-}
-
-async fn wait_between_actions() {
-    let (mean, std, min, max): (f64, f64, f64, f64) = (3000.0, 1200.0, 1000.0, 7000.0);
-
-    let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
-
-    tokio::time::sleep(Duration::from_millis(number.clamp(min, max) as u64)).await;
 }

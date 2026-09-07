@@ -1,8 +1,4 @@
-use std::time::Duration;
-
 use chrono::Local;
-use rand::thread_rng;
-use rand_distr::{Distribution, Normal};
 
 use sf_api::{
     command::Command,
@@ -181,14 +177,6 @@ pub async fn guild(session: &mut SimpleSession) {
             break;
         }
 
-        wait_between_actions().await;
+        crate::wait_between_actions(3400.0, 1400.0, 1200.0, 7500.0).await;
     }
-}
-
-async fn wait_between_actions() {
-    let (mean, std, min, max): (f64, f64, f64, f64) = (3400.0, 1400.0, 1200.0, 7500.0);
-
-    let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
-
-    tokio::time::sleep(Duration::from_millis(number.clamp(min, max) as u64)).await;
 }

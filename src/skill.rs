@@ -1,13 +1,12 @@
-use std::time::Duration;
-
-use rand::thread_rng;
-use rand_distr::{Distribution, Normal};
-
 use sf_api::{
     command::{AttributeType, Command},
     session::SimpleSession,
 };
 
+use crate::constant::{
+    SKILL_GOLD_SAFETY_MULTIPLIER, SKILL_WEIGHT_CONSTITUTION, SKILL_WEIGHT_LUCK,
+    SKILL_WEIGHT_MAIN_ATTRIBUTE, SKILL_WEIGHT_SECONDARY_ATTRIBUTE,
+};
 use crate::log::log;
 
 fn skill_next(session: &SimpleSession) -> Option<Command> {
@@ -32,11 +31,11 @@ fn skill_next(session: &SimpleSession) -> Option<Command> {
     let other2 = others[1];
 
     let scores = [
-        (main_attr, character.attribute_basis[main_attr] as f64 / 100.0),
-        (constitut, character.attribute_basis[constitut] as f64 / 080.0),
-        (other1, character.attribute_basis[other1] as f64 / 10.0),
-        (other2, character.attribute_basis[other2] as f64 / 10.0),
-        (luck, character.attribute_basis[luck] as f64 / 40.0),
+        (main_attr, character.attribute_basis[main_attr] as f64 / SKILL_WEIGHT_MAIN_ATTRIBUTE),
+        (constitut, character.attribute_basis[constitut] as f64 / SKILL_WEIGHT_CONSTITUTION),
+        (other1, character.attribute_basis[other1] as f64 / SKILL_WEIGHT_SECONDARY_ATTRIBUTE),
+        (other2, character.attribute_basis[other2] as f64 / SKILL_WEIGHT_SECONDARY_ATTRIBUTE),
+        (luck, character.attribute_basis[luck] as f64 / SKILL_WEIGHT_LUCK),
     ];
 
     let (mut best_attr, mut min_score) = (main_attr, f64::MAX);
@@ -57,7 +56,7 @@ fn skill_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
-    if character.silver > crate::constant::SKILL_GOLD_SAFETY_MULTIPLIER * max_shop_price {
+    if character.silver > SKILL_GOLD_SAFETY_MULTIPLIER * max_shop_price {
         let next_value = character.attribute_basis[best_attr] + 1;
 
         return Some(Command::UpgradeSkill { attribute: best_attr, next_attribute: next_value });
@@ -77,14 +76,6 @@ pub async fn skill(session: &mut SimpleSession) {
             break;
         }
 
-        wait_between_actions().await;
+        crate::wait_between_actions(800.0, 300.0, 400.0, 1800.0).await;
     }
-}
-
-async fn wait_between_actions() {
-    let (mean, std, min, max): (f64, f64, f64, f64) = (800.0, 300.0, 400.0, 1800.0);
-
-    let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
-
-    tokio::time::sleep(Duration::from_millis(number.clamp(min, max) as u64)).await;
 }

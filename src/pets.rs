@@ -1,8 +1,6 @@
-use std::{collections::HashSet, time::Duration};
+use std::collections::HashSet;
 
 use chrono::Local;
-use rand::thread_rng;
-use rand_distr::{Distribution, Normal};
 
 use sf_api::{
     command::Command,
@@ -132,14 +130,6 @@ fn pets_next(session: &SimpleSession, vo: &HashSet<u32>) -> Option<(Command, Opt
     None
 }
 
-async fn wait_between_actions() {
-    let (mean, std, min, max): (f64, f64, f64, f64) = (2800.0, 1000.0, 1000.0, 6000.0);
-
-    let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
-
-    tokio::time::sleep(Duration::from_millis(number.clamp(min, max) as u64)).await;
-}
-
 pub async fn pets(session: &mut SimpleSession) {
     let mut vo = HashSet::new();
 
@@ -164,6 +154,6 @@ pub async fn pets(session: &mut SimpleSession) {
             break;
         }
 
-        wait_between_actions().await;
+        crate::wait_between_actions(2800.0, 1000.0, 1000.0, 6000.0).await;
     }
 }

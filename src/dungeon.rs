@@ -1,8 +1,4 @@
-use std::time::Duration;
-
 use chrono::Local;
-use rand::thread_rng;
-use rand_distr::{Distribution, Normal};
 use strum::IntoEnumIterator;
 
 use sf_api::{
@@ -151,7 +147,7 @@ pub async fn dungeon(session: &mut SimpleSession) {
             break;
         }
 
-        wait_between_actions().await;
+        crate::wait_between_actions(3200.0, 1200.0, 1200.0, 7000.0).await;
 
         if let Err(err) = session.send_command(Command::UpdateDungeons).await {
             log(session, &format!("FAILED TO UPDATE DUNGEONS ({:?})", err));
@@ -159,12 +155,4 @@ pub async fn dungeon(session: &mut SimpleSession) {
             break;
         }
     }
-}
-
-async fn wait_between_actions() {
-    let (mean, std, min, max): (f64, f64, f64, f64) = (3200.0, 1200.0, 1200.0, 7000.0);
-
-    let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
-
-    tokio::time::sleep(Duration::from_millis(number.clamp(min, max) as u64)).await;
 }

@@ -1,19 +1,6 @@
-use std::time::Duration;
-
-use rand::thread_rng;
-use rand_distr::{Distribution, Normal};
-
 use sf_api::{command::Command, gamestate::social::MessageType, session::SimpleSession};
 
 use crate::log::log;
-
-async fn wait_between_actions() {
-    let (mean, std, min, max): (f64, f64, f64, f64) = (2800.0, 1000.0, 1000.0, 6000.0);
-
-    let number = Normal::new(mean, std).unwrap().sample(&mut thread_rng());
-
-    tokio::time::sleep(Duration::from_millis(number.clamp(min, max) as u64)).await;
-}
 
 pub async fn mail(session: &mut SimpleSession) {
     let Some(gs) = session.game_state() else {
@@ -38,7 +25,7 @@ pub async fn mail(session: &mut SimpleSession) {
             log(session, &format!("FAILED TO READ MESSAGE ({:?})", err));
         }
 
-        wait_between_actions().await;
+        crate::wait_between_actions(2800.0, 1000.0, 1000.0, 6000.0).await;
     }
 
     let Some(gs) = session.game_state() else {
@@ -62,6 +49,6 @@ pub async fn mail(session: &mut SimpleSession) {
             log(session, &format!("FAILED TO READ NEWS ({:?})", err));
         }
 
-        wait_between_actions().await;
+        crate::wait_between_actions(2800.0, 1000.0, 1000.0, 6000.0).await;
     }
 }
