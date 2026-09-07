@@ -5,11 +5,13 @@ use rand_distr::{Distribution, Normal};
 
 use sf_api::{
     command::{Command, FortunePayment},
+    gamestate::rewards::Event,
     gamestate::social::ClaimableStatus,
     gamestate::unlockables::HellevatorStatus,
     session::SimpleSession,
 };
 
+use crate::constant::{WHEEL_MAX_DAILY_SPINS, WHEEL_MAX_DAILY_SPINS_LUCKY_DAY_EVENT};
 use crate::log::log;
 
 fn daily_next(session: &SimpleSession) -> Option<Command> {

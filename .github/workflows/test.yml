@@ -1,0 +1,29 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  check:
+    name: Check & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Format Check
+        run: cargo fmt --check
+
+      - name: Cargo Check
+        run: cargo check --verbose
+
+      - name: Cargo Build
+        run: cargo build --verbose
