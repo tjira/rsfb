@@ -130,7 +130,9 @@ fn guild_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
-    if gs.character.level >= 99 && guild.portal.defeated_count < 50 && guild.portal.life_percentage > 0 {
+    let perc = guild.portal.life_percentage;
+
+    if gs.character.level >= 99 && guild.portal.defeated_count < 50 && perc > 0 {
         let fought_today = own_member.as_ref().map_or(true, |m| {
             let date = Local::now().date_naive();
 
