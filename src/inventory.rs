@@ -21,13 +21,32 @@ static MIN_ARCANE: LazyLock<u64> = LazyLock::new(|| CONFIG.inventory.min_arcane)
 static ENABLE_INVENTORY: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_inventory);
 static ENABLE_TOILET: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_toilet);
 static ENABLE_BLACKSMITH: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_blacksmith);
+static WEIGHT_MAIN_ATTRIBUTE: LazyLock<f64> = LazyLock::new(|| CONFIG.skills.weight_main_attribute);
+static WEIGHT_CONSTITUTION: LazyLock<f64> = LazyLock::new(|| CONFIG.skills.weight_constitution);
+static WEIGHT_LUCK: LazyLock<f64> = LazyLock::new(|| CONFIG.skills.weight_luck);
+
+fn item_power(it: &Item, class: Class) -> f64 {
+    let main_attr = class.main_attribute();
+
+    let mw = it.attributes[main_attr] as f64 * (*WEIGHT_MAIN_ATTRIBUTE / 100.0);
+    let cw = it.attributes[AttributeType::Constitution] as f64 * (*WEIGHT_CONSTITUTION / 100.0);
+    let lw = it.attributes[AttributeType::Luck] as f64 * (*WEIGHT_LUCK / 100.0);
+
+    let stats = mw + cw + lw;
+
+    if let ItemType::Weapon { min_dmg, max_dmg } = it.typ {
+        let avg_dmg = (min_dmg + max_dmg) as f64 / 2.0;
+
+        return (avg_dmg * 10.0) + stats;
+    }
+
+    stats + (it.armor() as f64 * 0.2)
+}
 
 fn should_equip(session: &SimpleSession, it: &Item, slot: EquipmentSlot) -> bool {
     let Some(gs) = session.game_state() else {
         return false;
     };
-
-    let attr = gs.character.class.main_attribute();
 
     if !it.can_be_equipped_by(gs.character.class) {
         return false;
@@ -37,7 +56,7 @@ fn should_equip(session: &SimpleSession, it: &Item, slot: EquipmentSlot) -> bool
         return true;
     };
 
-    let (a_old, a_new) = (eq.attributes[attr] as f64, it.attributes[attr] as f64);
+    let (a_old, a_new) = (item_power(eq, gs.character.class), item_power(it, gs.character.class));
 
     let new_is_special = it.is_epic() || it.is_legendary();
     let old_is_special = eq.is_epic() || eq.is_legendary();
@@ -72,13 +91,13 @@ fn s_eq_comp(session: &SimpleSession, it: &Item, slot: EquipmentSlot, cc: Compan
         return false;
     }
 
-    let attr = Class::from(cc).main_attribute();
-
     let Some(eq) = companions[cc].equipment.0[slot].as_ref() else {
         return true;
     };
 
-    let (a_old, a_new) = (eq.attributes[attr] as f64, it.attributes[attr] as f64);
+    let comp_class = Class::from(cc);
+
+    let (a_old, a_new) = (item_power(eq, comp_class), item_power(it, comp_class));
 
     let new_is_special = it.is_epic() || it.is_legendary();
     let old_is_special = eq.is_epic() || eq.is_legendary();
@@ -471,6 +490,10 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
 
     for (bag_pos, slot) in gs.character.inventory.iter() {
         if let Some(item) = slot {
+            if item.typ.equipment_slot().is_none() {
+                continue;
+            }
+
             if *ENABLE_TOILET && item.typ == ItemType::ToiletKey && !toilet_unlocked {
                 continue;
             }

@@ -11,7 +11,6 @@ use sf_api::{
 use crate::config::CONFIG;
 use crate::log::log;
 
-static MIN_FREE_SLOTS: LazyLock<usize> = LazyLock::new(|| CONFIG.inventory.min_free_slots);
 static WHEEL_MAX_DAILY_SPINS: LazyLock<u8> = LazyLock::new(|| CONFIG.daily.wheel_max_daily_spins);
 static WHEEL_SPINS_LUCKY_DAY: LazyLock<u8> = LazyLock::new(|| CONFIG.daily.wheel_spins_lucky_day);
 static ENABLE_DAILY: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_daily);
@@ -23,7 +22,7 @@ fn daily_next(session: &SimpleSession) -> Option<Command> {
         return None;
     };
 
-    if gs.character.inventory.count_free_slots() < *MIN_FREE_SLOTS {
+    if gs.character.inventory.count_free_slots() == 0 {
         return None;
     }
 
