@@ -22,6 +22,9 @@ pub const ENABLE_FORTRESS: bool = true;
 /// Enable or disable Underworld management (resource harvesting, buildings, luring hero fights, units).
 pub const ENABLE_UNDERWORLD: bool = true;
 
+/// Enable or disable the Idle game (Arena Manager) building upgrades and rune sacrifices.
+pub const ENABLE_IDLE: bool = true;
+
 // Character & Economy
 /// Enable or disable inventory management (equipping upgrades, dismantling, selling).
 pub const ENABLE_INVENTORY: bool = true;

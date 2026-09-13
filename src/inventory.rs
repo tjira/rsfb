@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use strum::IntoEnumIterator;
 
 use sf_api::{
@@ -10,7 +12,12 @@ use sf_api::{
     session::SimpleSession,
 };
 
+use crate::config::CONFIG;
 use crate::log::log;
+
+static MIN_FREE_SLOTS: LazyLock<usize> = LazyLock::new(|| CONFIG.inventory.min_free_slots);
+static EPIC_MULTIPLIER: LazyLock<f64> = LazyLock::new(|| CONFIG.inventory.epic_multiplier);
+static MIN_ARCANE: LazyLock<u64> = LazyLock::new(|| CONFIG.inventory.min_arcane);
 
 fn should_equip(session: &SimpleSession, it: &Item, slot: EquipmentSlot) -> bool {
     let Some(gs) = session.game_state() else {
@@ -32,12 +39,14 @@ fn should_equip(session: &SimpleSession, it: &Item, slot: EquipmentSlot) -> bool
     let new_is_special = it.is_epic() || it.is_legendary();
     let old_is_special = eq.is_epic() || eq.is_legendary();
 
+    let mult = *EPIC_MULTIPLIER;
+
     if !new_is_special && old_is_special {
-        return a_new > a_old * crate::constant::EPIC_LEGENDARY_MULTIPLIER;
+        return a_new > a_old * mult;
     }
 
     if new_is_special && !old_is_special {
-        return a_old < a_new * crate::constant::EPIC_LEGENDARY_MULTIPLIER;
+        return a_old < a_new * mult;
     }
 
     a_new > a_old
@@ -71,12 +80,14 @@ fn s_eq_comp(session: &SimpleSession, it: &Item, slot: EquipmentSlot, cc: Compan
     let new_is_special = it.is_epic() || it.is_legendary();
     let old_is_special = eq.is_epic() || eq.is_legendary();
 
+    let mult = *EPIC_MULTIPLIER;
+
     if !new_is_special && old_is_special {
-        return a_new > a_old * crate::constant::EPIC_LEGENDARY_MULTIPLIER;
+        return a_new > a_old * mult;
     }
 
     if new_is_special && !old_is_special {
-        return a_old < a_new * crate::constant::EPIC_LEGENDARY_MULTIPLIER;
+        return a_old < a_new * mult;
     }
 
     a_new > a_old
@@ -253,7 +264,7 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
         }
     }
 
-    let fs = crate::constant::INVENTORY_MIN_FREE_SLOTS;
+    let fs = *MIN_FREE_SLOTS;
 
     let can_sell = gs.character.inventory.count_free_slots() < fs;
 
@@ -454,7 +465,7 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
                 if item.typ.equipment_slot().is_some() {
                     let reward = item.dismantle_reward();
 
-                    if reward.arcane > crate::constant::BLACKSMITH_MIN_ARCANE_DISMANTLE {
+                    if reward.arcane > *MIN_ARCANE {
                         let item_pos = PlayerItemPosition::from(bag_pos);
 
                         let (item_ident, a) = (item.command_ident(), BlacksmithAction::Dismantle);

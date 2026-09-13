@@ -1,13 +1,18 @@
+use std::sync::LazyLock;
+
 use sf_api::{
     command::{AttributeType, Command},
     session::SimpleSession,
 };
 
-use crate::constant::{
-    SKILL_GOLD_SAFETY_MULTIPLIER, SKILL_WEIGHT_CONSTITUTION, SKILL_WEIGHT_LUCK,
-    SKILL_WEIGHT_MAIN_ATTRIBUTE, SKILL_WEIGHT_SECONDARY_ATTRIBUTE,
-};
+use crate::config::CONFIG;
 use crate::log::log;
+
+static GOLD_SAFETY_MULT: LazyLock<u64> = LazyLock::new(|| CONFIG.skills.gold_safety_mult);
+static WEIGHT_MAIN_ATTRIBUTE: LazyLock<f64> = LazyLock::new(|| CONFIG.skills.weight_main_attribute);
+static WEIGHT_CONSTITUTION: LazyLock<f64> = LazyLock::new(|| CONFIG.skills.weight_constitution);
+static WEIGHT_LUCK: LazyLock<f64> = LazyLock::new(|| CONFIG.skills.weight_luck);
+static WEIGHT_SECONDARY: LazyLock<f64> = LazyLock::new(|| CONFIG.skills.weight_secondary);
 
 fn skill_next(session: &SimpleSession) -> Option<Command> {
     let Some(gs) = session.game_state() else {
@@ -31,11 +36,11 @@ fn skill_next(session: &SimpleSession) -> Option<Command> {
     let other2 = others[1];
 
     let scores = [
-        (main_attr, character.attribute_basis[main_attr] as f64 / SKILL_WEIGHT_MAIN_ATTRIBUTE),
-        (constitut, character.attribute_basis[constitut] as f64 / SKILL_WEIGHT_CONSTITUTION),
-        (other1, character.attribute_basis[other1] as f64 / SKILL_WEIGHT_SECONDARY_ATTRIBUTE),
-        (other2, character.attribute_basis[other2] as f64 / SKILL_WEIGHT_SECONDARY_ATTRIBUTE),
-        (luck, character.attribute_basis[luck] as f64 / SKILL_WEIGHT_LUCK),
+        (main_attr, character.attribute_basis[main_attr] as f64 / *WEIGHT_MAIN_ATTRIBUTE),
+        (constitut, character.attribute_basis[constitut] as f64 / *WEIGHT_CONSTITUTION),
+        (other1, character.attribute_basis[other1] as f64 / *WEIGHT_SECONDARY),
+        (other2, character.attribute_basis[other2] as f64 / *WEIGHT_SECONDARY),
+        (luck, character.attribute_basis[luck] as f64 / *WEIGHT_LUCK),
     ];
 
     let (mut best_attr, mut min_score) = (main_attr, f64::MAX);
@@ -56,7 +61,7 @@ fn skill_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
-    if character.silver > SKILL_GOLD_SAFETY_MULTIPLIER * max_shop_price {
+    if character.silver > *GOLD_SAFETY_MULT * max_shop_price {
         let next_value = character.attribute_basis[best_attr] + 1;
 
         return Some(Command::UpgradeSkill { attribute: best_attr, next_attribute: next_value });

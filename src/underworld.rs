@@ -1,22 +1,27 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
 use chrono::Local;
 use strum::IntoEnumIterator;
 
 use sf_api::{
     command::Command,
-    gamestate::underworld::{UnderworldResourceType, UnderworldUnitType},
     gamestate::underworld::{LureSuggestion, UnderworldBuildingType},
+    gamestate::underworld::{UnderworldResourceType, UnderworldUnitType},
     misc::EnumMapGet,
     session::SimpleSession,
 };
 
+use crate::config::CONFIG;
 use crate::log::log;
 
 static UW_COLLECTED_ON_STARTUP: Mutex<Option<HashSet<String>>> = Mutex::new(None);
 
 static LAST_LURE_CHECK: Mutex<Option<HashMap<String, (LureSuggestion, u32)>>> = Mutex::new(None);
+
+static HARVEST_CHECK_MINS: LazyLock<i64> = LazyLock::new(|| CONFIG.fortress.harvest_check_mins);
+static HARVEST_RATIO: LazyLock<f64> = LazyLock::new(|| CONFIG.fortress.harvest_ratio);
+static GOBLIN_HERO_RATIO: LazyLock<f64> = LazyLock::new(|| CONFIG.fortress.goblin_hero_ratio);
 
 fn underworld_next(session: &SimpleSession) -> Option<Command> {
     let Some(gs) = session.game_state() else {
@@ -64,7 +69,7 @@ fn underworld_next(session: &SimpleSession) -> Option<Command> {
     };
 
     let is_collect_time = underworld.last_collectable_update.map_or(true, |lu| {
-        let t1 = chrono::Duration::minutes(crate::constant::HARVEST_CHECK_INTERVAL_MINS);
+        let t1 = chrono::Duration::minutes(*HARVEST_CHECK_MINS);
 
         let (interval, window) = (t1, chrono::Duration::minutes(2));
 
@@ -73,7 +78,7 @@ fn underworld_next(session: &SimpleSession) -> Option<Command> {
         time_since_update >= interval || time_since_update < window
     });
 
-    let ratio = crate::constant::FORTRESS_HARVEST_STORAGE_RATIO;
+    let ratio = *HARVEST_RATIO;
 
     let (sl, th) = (UnderworldResourceType::Silver, UnderworldResourceType::ThirstForAdventure);
 
@@ -167,13 +172,13 @@ fn underworld_next(session: &SimpleSession) -> Option<Command> {
                 if let Some(other_player) = gs.lookup.lookup_name(&hof_player.name) {
                     let level = other_player.level as f64;
 
-                    if goblin_level >= level * crate::constant::GOBLIN_LEVEL_HERO_RATIO {
+                    if goblin_level >= level * *GOBLIN_HERO_RATIO {
                         let player_id = other_player.player_id;
 
                         return Some(Command::UnderworldAttack { player_id });
                     }
 
-                    if goblin_level < level * crate::constant::GOBLIN_LEVEL_HERO_RATIO {
+                    if goblin_level < level * *GOBLIN_HERO_RATIO {
                         let mut last_check = LAST_LURE_CHECK.lock().unwrap();
 
                         let (name, pair) = (gs.character.name.clone(), (sugg, goblin_level as u32));

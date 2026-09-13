@@ -5,6 +5,8 @@
   ·
   <a href="#compilation">Compilation</a>
   ·
+  <a href="#configuration">Configuration</a>
+  ·
   <a href="#usage">Usage</a>
 </h4>
 
@@ -40,7 +42,7 @@ Lightweight asynchronous Rust bot for Shakes & Fidget automation. Designed to pr
 
 ## Download
 
-Pre-compiled binaries for various platforms are available on the [Releases](https://github.com/tjira/rsfb/releases) page.
+Pre-compiled binaries for Linux, Windows, and macOS can be downloaded directly from the [Releases](https://github.com/tjira/rsfb/releases) page. Download the executable for your platform and optionally place `rsfb.toml` alongside it.
 
 ## Compilation
 
@@ -62,6 +64,19 @@ cargo build --release
 ```
 
 Once the build is complete, you can find the compiled executable in the target release directory. For Linux and macOS users, this file is named `target/release/rsfb` while Windows users can find it at `target/release/rsfb.exe`.
+
+## Configuration
+
+`rsfb.toml` is provided in the repository as an example configuration file. You can place `rsfb.toml` in the same directory as the executable to customize bot behavior.
+
+The configuration file allows you to:
+- Enable or disable individual game features (arena, dungeons, expeditions, pets, underworld, fortress, etc.)
+- Set daytime schedule hours and multi-account status refresh intervals
+- Configure inventory thresholds and blacksmith dismantle rules
+- Fine-tune character skill upgrade priority weights
+- Adjust resource harvesting intervals and economy limits
+
+All settings are optional; any omitted option will automatically fall back to its built-in default value.
 
 ## Usage
 

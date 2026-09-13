@@ -1,0 +1,54 @@
+# Feature Toggles (true = enabled, false = disabled; omitted flags default to true)
+[features]
+enable_expedition = true # Tavern expeditions, questing, and beer consumption
+enable_arena      = true # Automated PvP Arena battles for XP and honor
+enable_dungeon    = true # Dungeon battles (solo, tower, portal, shadow world)
+enable_pets       = true # Pet habitat fights, pet battles, and pet feeding
+enable_fortress   = true # Fortress harvesting, building, gem mine, units, attacks
+enable_underworld = true # Underworld harvesting, building, hero lures, units
+enable_idle       = true # Idle game (Arena Manager) upgrades and rune sacrifices
+enable_inventory  = true # Equipping upgrades, blacksmith dismantle, selling surplus
+enable_shop       = true # Buying equipment upgrades, scrapbooks, and dice game
+enable_skill      = true # Automatic character attribute upgrades using surplus gold
+enable_mount      = true # Automatic mount rental and renewals (e.g. dragon / gryphon)
+enable_witch      = true # Witch cauldron item donations and enchantments
+enable_guild      = true # Guild battles, defenses, guild portal, hydra, donations
+enable_mail       = true # Reading incoming inbox mail and notifications
+enable_daily      = true # Daily calendar, event tasks, daily quests, Hellevator
+enable_guard      = true # City guard duty when out of thirst or before daytime start
+enable_unlock     = true # Automatically claiming pending feature unlocks
+
+# Bot Schedule & Status Timers
+[schedule]
+expedition_hour   = 5   # Hour (0-23) when daytime activities begin; guard before this
+status_table_secs = 300 # Interval in seconds between status table refreshes
+
+# Inventory & Equipment Management
+[inventory]
+min_free_slots  = 5    # Minimum empty inventory slots before triggering item cleanup
+epic_multiplier = 2    # Multiplier required for normal gear to replace epic gear
+min_arcane      = 1000 # Minimum arcane splinters from item to trigger dismantle
+
+# Character Skills & Attribute Weights
+[skills]
+gold_safety_mult      = 10  # Multiplier on max shop item price kept as silver buffer
+weight_main_attribute = 100 # Priority weight for character's primary class attribute
+weight_constitution   = 80  # Priority weight for Constitution (health pool)
+weight_luck           = 40  # Priority weight for Luck (critical hit chance)
+weight_secondary      = 10  # Priority weight for secondary / off-class attributes
+
+# Fortress & Underworld Base Management
+[fortress]
+harvest_check_mins = 30  # Minimum interval in minutes between resource harvest checks
+harvest_ratio      = 0.5 # Storage capacity ratio required to harvest resources (50%)
+goblin_hero_ratio  = 1.5 # Goblin-to-hero level ratio required before underworld fight
+
+# Economy & Currency Limits
+[economy]
+min_mushroom_reserve = 30  # Minimum mushrooms reserved when spending on upgrades
+guild_mushroom_ratio = 0.1 # Max fraction of mushrooms spent per guild upgrade (10%)
+
+# Daily Rewards & Mini-Games
+[daily]
+wheel_max_daily_spins = 20 # Maximum daily Wheel of Fortune spins on regular days
+wheel_spins_lucky_day = 40 # Maximum daily Wheel of Fortune spins during Lucky Day event

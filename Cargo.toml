@@ -9,7 +9,9 @@ sf-api = { git = "https://github.com/the-marenga/sf-api.git" }
 chrono     =  "0.4"
 rand       =  "0.8"
 rand_distr =  "0.4"
+serde      =  "1.0"
 strum      = "0.28"
+toml       =  "0.8"
 
 [target.'cfg(all())'.dependencies]
 tokio = { version = "1.53", features = ["macros", "rt-multi-thread"] }

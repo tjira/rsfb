@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use chrono::Local;
 
 use sf_api::{
@@ -7,25 +9,25 @@ use sf_api::{
     session::SimpleSession,
 };
 
+use crate::config::CONFIG;
 use crate::log::log;
+
+static MIN_MUSHROOM_RESERVE: LazyLock<u32> = LazyLock::new(|| CONFIG.economy.min_mushroom_reserve);
+static GUILD_MUSHROOM_RATIO: LazyLock<f64> = LazyLock::new(|| CONFIG.economy.guild_mushroom_ratio);
 
 fn can_afford_guild_skill(cost: NormalCost, silver: u64, mushrooms: u32) -> bool {
     if cost.silver > silver {
         return false;
     }
 
-    let mm = crate::constant::MIN_MUSHROOM_RESERVE;
-
     if cost.mushrooms > 0 {
         let cost_mushrooms = cost.mushrooms as u32;
 
-        if mushrooms.saturating_sub(cost_mushrooms) < mm {
+        if mushrooms.saturating_sub(cost_mushrooms) < *MIN_MUSHROOM_RESERVE {
             return false;
         }
 
-        let gum = crate::constant::GUILD_UPGRADE_MAX_MUSHROOM_RATIO;
-
-        if (cost.mushrooms as f64) >= (mushrooms as f64) * gum {
+        if (cost.mushrooms as f64) >= (mushrooms as f64) * *GUILD_MUSHROOM_RATIO {
             return false;
         }
     }

@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use sf_api::{
     command::{Command, FortunePayment},
     gamestate::rewards::Event,
@@ -6,15 +8,19 @@ use sf_api::{
     session::SimpleSession,
 };
 
-use crate::constant::{WHEEL_MAX_DAILY_SPINS, WHEEL_MAX_DAILY_SPINS_LUCKY_DAY_EVENT};
+use crate::config::CONFIG;
 use crate::log::log;
+
+static MIN_FREE_SLOTS: LazyLock<usize> = LazyLock::new(|| CONFIG.inventory.min_free_slots);
+static WHEEL_MAX_DAILY_SPINS: LazyLock<u8> = LazyLock::new(|| CONFIG.daily.wheel_max_daily_spins);
+static WHEEL_SPINS_LUCKY_DAY: LazyLock<u8> = LazyLock::new(|| CONFIG.daily.wheel_spins_lucky_day);
 
 fn daily_next(session: &SimpleSession) -> Option<Command> {
     let Some(gs) = session.game_state() else {
         return None;
     };
 
-    if gs.character.inventory.count_free_slots() < crate::constant::INVENTORY_MIN_FREE_SLOTS {
+    if gs.character.inventory.count_free_slots() < *MIN_FREE_SLOTS {
         return None;
     }
 
@@ -66,15 +72,15 @@ fn daily_next(session: &SimpleSession) -> Option<Command> {
     }
 
     if let Some(next) = gs.specials.wheel.next_free_spin {
-        if now >= next && gs.specials.wheel.spins_today < crate::constant::WHEEL_MAX_DAILY_SPINS {
+        if now >= next && gs.specials.wheel.spins_today < *WHEEL_MAX_DAILY_SPINS {
             return Some(Command::SpinWheelOfFortune { payment: FortunePayment::FreeTurn });
         }
     }
 
     let max_daily_spins = if gs.specials.events.active.contains(&Event::LuckyDay) {
-        WHEEL_MAX_DAILY_SPINS_LUCKY_DAY_EVENT
+        *WHEEL_SPINS_LUCKY_DAY
     } else {
-        WHEEL_MAX_DAILY_SPINS
+        *WHEEL_MAX_DAILY_SPINS
     };
 
     if gs.specials.wheel.lucky_coins >= 10 && gs.specials.wheel.spins_today < max_daily_spins {

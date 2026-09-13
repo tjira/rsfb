@@ -17,6 +17,7 @@ use sf_api::{
 };
 
 mod arena;
+mod config;
 mod constant;
 mod daily;
 mod dungeon;
@@ -24,6 +25,7 @@ mod expedition;
 mod fortress;
 mod guard;
 mod guild;
+mod idle;
 mod inventory;
 mod log;
 mod mail;
@@ -41,6 +43,7 @@ use expedition::expedition;
 use fortress::fortress;
 use guard::guard;
 use guild::guild;
+use idle::idle;
 use inventory::inventory;
 use mail::mail;
 use mount::mount;
@@ -49,6 +52,31 @@ use shop::shop;
 use skill::skill;
 use underworld::underworld;
 use witch::witch;
+
+use std::sync::LazyLock;
+
+use config::CONFIG;
+
+static STATUS_TABLE_SECS: LazyLock<u64> = LazyLock::new(|| CONFIG.schedule.status_table_secs);
+static EXPEDITION_HOUR: LazyLock<u32> = LazyLock::new(|| CONFIG.schedule.expedition_hour);
+
+static ENABLE_MAIL: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_mail);
+static ENABLE_UNLOCK: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_unlock);
+static ENABLE_GUARD: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_guard);
+static ENABLE_SHOP: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_shop);
+static ENABLE_INVENTORY: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_inventory);
+static ENABLE_FORTRESS: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_fortress);
+static ENABLE_UNDERWORLD: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_underworld);
+static ENABLE_DAILY: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_daily);
+static ENABLE_GUILD: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_guild);
+static ENABLE_SKILL: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_skill);
+static ENABLE_MOUNT: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_mount);
+static ENABLE_WITCH: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_witch);
+static ENABLE_ARENA: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_arena);
+static ENABLE_IDLE: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_idle);
+static ENABLE_DUNGEON: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_dungeon);
+static ENABLE_PETS: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_pets);
+static ENABLE_EXPEDITION: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_expedition);
 
 #[derive(Debug, Clone)]
 struct CharacterStatus {
@@ -117,7 +145,7 @@ async fn main() -> Result<(), sf_api::error::SFError> {
 
             print_character_table(&shared_map).await;
 
-            let isec = constant::STATUS_TABLE_INTERVAL_SECS;
+            let isec = *STATUS_TABLE_SECS;
 
             let mut interval = tokio::time::interval(Duration::from_secs(isec));
 
@@ -395,7 +423,7 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
 
     update_character_status(&sess, &sm).await;
 
-    if constant::ENABLE_MAIL {
+    if *ENABLE_MAIL {
         mail(&mut sess).await;
     }
 
@@ -420,33 +448,33 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
 
         update_character_status(&sess, &sm).await;
 
-        if constant::ENABLE_UNLOCK {
+        if *ENABLE_UNLOCK {
             unlock(&mut sess).await;
         }
 
-        if constant::ENABLE_GUARD {
+        if *ENABLE_GUARD {
             guard(&mut sess).await;
         }
 
-        if hour < constant::EXPEDITION_START_HOUR {
+        if hour < *EXPEDITION_HOUR {
             wait_between_actions(10000.0, 1200.0, 8000.0, 15000.0).await;
 
             continue;
         }
 
-        if constant::ENABLE_SHOP {
+        if *ENABLE_SHOP {
             shop(&mut sess).await;
         }
 
-        if constant::ENABLE_INVENTORY {
+        if *ENABLE_INVENTORY {
             inventory(&mut sess).await;
         }
 
-        if constant::ENABLE_FORTRESS {
+        if *ENABLE_FORTRESS {
             fortress(&mut sess).await;
         }
 
-        if constant::ENABLE_UNDERWORLD {
+        if *ENABLE_UNDERWORLD {
             underworld(&mut sess).await;
         }
 
@@ -462,35 +490,39 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
             continue;
         }
 
-        if constant::ENABLE_DAILY {
+        if *ENABLE_DAILY {
             daily(&mut sess).await;
         }
 
-        if constant::ENABLE_GUILD {
+        if *ENABLE_GUILD {
             guild(&mut sess).await;
         }
 
-        if constant::ENABLE_SKILL {
+        if *ENABLE_SKILL {
             skill(&mut sess).await;
         }
 
-        if constant::ENABLE_MOUNT {
+        if *ENABLE_MOUNT {
             mount(&mut sess).await;
         }
 
-        if constant::ENABLE_WITCH {
+        if *ENABLE_WITCH {
             witch(&mut sess).await;
         }
 
-        if constant::ENABLE_ARENA {
+        if *ENABLE_ARENA {
             arena(&mut sess).await;
         }
 
-        if constant::ENABLE_DUNGEON {
+        if *ENABLE_IDLE {
+            idle(&mut sess).await;
+        }
+
+        if *ENABLE_DUNGEON {
             dungeon(&mut sess).await;
         }
 
-        if constant::ENABLE_PETS {
+        if *ENABLE_PETS {
             pets(&mut sess).await;
         }
 
@@ -504,7 +536,7 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
 
         let is_exp = gs.tavern.current_action == CurrentAction::Expedition;
 
-        if constant::ENABLE_EXPEDITION && (is_exp || thirst > 0 || can_drink_beer) {
+        if *ENABLE_EXPEDITION && (is_exp || thirst > 0 || can_drink_beer) {
             expedition(&mut sess).await;
         }
 

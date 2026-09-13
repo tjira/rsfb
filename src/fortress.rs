@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
 use chrono::Local;
 use strum::IntoEnumIterator;
@@ -11,9 +11,13 @@ use sf_api::{
     session::SimpleSession,
 };
 
+use crate::config::CONFIG;
 use crate::log::log;
 
 static FS_COLLECTED_ON_STARTUP: Mutex<Option<HashSet<String>>> = Mutex::new(None);
+
+static HARVEST_CHECK_MINS: LazyLock<i64> = LazyLock::new(|| CONFIG.fortress.harvest_check_mins);
+static HARVEST_RATIO: LazyLock<f64> = LazyLock::new(|| CONFIG.fortress.harvest_ratio);
 
 fn fortress_next(session: &SimpleSession) -> Option<Command> {
     let Some(gs) = session.game_state() else {
@@ -68,7 +72,7 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
     };
 
     let is_collect_time = fortress.last_collectable_updated.map_or(true, |lu| {
-        let t1 = chrono::Duration::minutes(crate::constant::HARVEST_CHECK_INTERVAL_MINS);
+        let t1 = chrono::Duration::minutes(*HARVEST_CHECK_MINS);
 
         let (interval, window) = (t1, chrono::Duration::minutes(2));
 
@@ -77,7 +81,7 @@ fn fortress_next(session: &SimpleSession) -> Option<Command> {
         time_since_update >= interval || time_since_update < window
     });
 
-    let ratio = crate::constant::FORTRESS_HARVEST_STORAGE_RATIO;
+    let ratio = *HARVEST_RATIO;
 
     if is_startup || is_collect_time {
         let wood = fortress.resources.get(FortressResourceType::Wood);
