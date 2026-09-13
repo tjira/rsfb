@@ -18,6 +18,9 @@ use crate::log::log;
 static MIN_FREE_SLOTS: LazyLock<usize> = LazyLock::new(|| CONFIG.inventory.min_free_slots);
 static EPIC_MULTIPLIER: LazyLock<f64> = LazyLock::new(|| CONFIG.inventory.epic_multiplier);
 static MIN_ARCANE: LazyLock<u64> = LazyLock::new(|| CONFIG.inventory.min_arcane);
+static ENABLE_INVENTORY: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_inventory);
+static ENABLE_TOILET: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_toilet);
+static ENABLE_BLACKSMITH: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_blacksmith);
 
 fn should_equip(session: &SimpleSession, it: &Item, slot: EquipmentSlot) -> bool {
     let Some(gs) = session.game_state() else {
@@ -139,7 +142,9 @@ fn sell(s: &SimpleSession, pos: PlayerItemPosition, ii: ItemCommandIdent, item: 
         return Command::SellShop { item_pos: pos, item_ident: ii };
     };
 
-    let toilet_unlocked = gs.character.level >= 100 && gs.tavern.toilet.is_some_and(|t| t.aura > 0);
+    let tis = gs.tavern.toilet.is_some_and(|t| t.aura > 0);
+
+    let toilet_unlocked = *ENABLE_TOILET && gs.character.level >= 100 && tis;
 
     if toilet_unlocked {
         if let Some(toilet) = gs.tavern.toilet {
@@ -149,7 +154,7 @@ fn sell(s: &SimpleSession, pos: PlayerItemPosition, ii: ItemCommandIdent, item: 
         }
     }
 
-    if gs.character.level >= 90 {
+    if *ENABLE_BLACKSMITH && gs.character.level >= 90 {
         if let Some(blacksmith) = &gs.blacksmith {
             if blacksmith.dismantle_left > 0 && item.typ.equipment_slot().is_some() {
                 let action = BlacksmithAction::Dismantle;
@@ -240,7 +245,9 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
         return None;
     };
 
-    let toilet_unlocked = gs.character.level >= 100 && gs.tavern.toilet.is_some_and(|t| t.aura > 0);
+    let tis = gs.tavern.toilet.is_some_and(|t| t.aura > 0);
+
+    let toilet_unlocked = *ENABLE_TOILET && gs.character.level >= 100 && tis;
 
     if toilet_unlocked {
         if let Some(toilet) = gs.tavern.toilet {
@@ -250,23 +257,25 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
         }
     }
 
-    let main_attr_pot = PotionType::from(gs.character.class.main_attribute());
+    if *ENABLE_INVENTORY {
+        let main_attr_pot = PotionType::from(gs.character.class.main_attribute());
 
-    for (idx, active) in gs.character.active_potions.iter().enumerate() {
-        if let Some(ap) = active {
-            let is_main_attribute = ap.typ == main_attr_pot;
-            let is_con = ap.typ == PotionType::Constitution;
-            let is_wing = ap.typ == PotionType::EternalLife;
+        for (idx, active) in gs.character.active_potions.iter().enumerate() {
+            if let Some(ap) = active {
+                let is_main_attribute = ap.typ == main_attr_pot;
+                let is_con = ap.typ == PotionType::Constitution;
+                let is_wing = ap.typ == PotionType::EternalLife;
 
-            if !is_main_attribute && !is_con && !is_wing {
-                return Some((Command::RemovePotion { pos: idx }, Some(ItemType::Potion(*ap))));
+                if !is_main_attribute && !is_con && !is_wing {
+                    return Some((Command::RemovePotion { pos: idx }, Some(ItemType::Potion(*ap))));
+                }
             }
         }
     }
 
     let fs = *MIN_FREE_SLOTS;
 
-    let can_sell = gs.character.inventory.count_free_slots() < fs;
+    let can_sell = *ENABLE_INVENTORY && gs.character.inventory.count_free_slots() < fs;
 
     for (bag_pos, slot) in gs.character.inventory.iter() {
         let Some(item) = slot else {
@@ -275,172 +284,185 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
 
         let (from_pos, item_ident) = (PlayerItemPosition::from(bag_pos), item.command_ident());
 
-        if item.typ == ItemType::ToiletKey && !toilet_unlocked {
+        if *ENABLE_TOILET && item.typ == ItemType::ToiletKey && !toilet_unlocked {
             return Some((Command::ToiletOpen, Some(item.typ.clone())));
         }
 
-        if let ItemType::Potion(potion) = item.typ {
-            let is_main_attr = potion.typ == main_attr_pot;
+        if *ENABLE_INVENTORY {
+            let main_attr_pot = PotionType::from(gs.character.class.main_attribute());
 
-            let is_constitution = potion.typ == PotionType::Constitution;
-            let is_winged_bottle = potion.typ == PotionType::EternalLife;
+            if let ItemType::Potion(potion) = item.typ {
+                let is_main_attr = potion.typ == main_attr_pot;
 
-            if !is_main_attr && !is_constitution && !is_winged_bottle {
-                continue;
+                let is_constitution = potion.typ == PotionType::Constitution;
+                let is_winged_bottle = potion.typ == PotionType::EternalLife;
+
+                if !is_main_attr && !is_constitution && !is_winged_bottle {
+                    continue;
+                }
+
+                let aps = gs.character.active_potions;
+
+                let active_idx_and_pot = aps.iter().enumerate().find_map(|(idx, active)| {
+                    active.as_ref().filter(|a| a.typ == potion.typ).map(|a| (idx, a))
+                });
+
+                match active_idx_and_pot {
+                    Some((idx, ap)) => {
+                        if ap.size < potion.size {
+                            let cmd = Command::RemovePotion { pos: idx };
+
+                            return Some((cmd, Some(ItemType::Potion(*ap))));
+                        }
+
+                        if ap.size > potion.size {
+                            continue;
+                        }
+
+                        let (ts, max) = (chrono::Local::now().timestamp(), 12 * 24 * 60 * 60);
+
+                        if !ap.expires.map_or(false, |exp| exp.timestamp() - ts >= max) {
+                            let from = ItemPosition::from(from_pos);
+
+                            let cmd = Command::UsePotion { from, item_ident };
+
+                            return Some((cmd, Some(item.typ.clone())));
+                        }
+                    }
+
+                    None => {
+                        let cmd =
+                            Command::UsePotion { from: ItemPosition::from(from_pos), item_ident };
+
+                        return Some((cmd, Some(item.typ.clone())));
+                    }
+                }
             }
 
-            let aps = gs.character.active_potions;
+            if let ItemType::Gem(gem) = &item.typ {
+                let player_attr = gs.character.class.main_attribute();
+                let match_attrib = matches_attr(gem.typ, player_attr);
 
-            let active_idx_and_pot = aps.iter().enumerate().find_map(|(idx, active)| {
-                active.as_ref().filter(|a| a.typ == potion.typ).map(|a| (idx, a))
-            });
+                let is_elig =
+                    gem.typ == GemType::All || gem.typ == GemType::Legendary || match_attrib;
 
-            match active_idx_and_pot {
-                Some((idx, ap)) => {
-                    if ap.size < potion.size {
-                        let cmd = Command::RemovePotion { pos: idx };
+                if is_elig {
+                    let (mut best_target, mut min_filled_value) = (None, u32::MAX);
 
-                        return Some((cmd, Some(ItemType::Potion(*ap))));
+                    for slot in EquipmentSlot::iter() {
+                        if let Some(eq_item) = gs.character.equipment.0[slot].as_ref() {
+                            if let Some(gem_slot) = eq_item.gem_slot {
+                                match gem_slot {
+                                    GemSlot::Empty => {
+                                        let to_slot = slot;
+
+                                        let cmd = Command::Equip { from_pos, to_slot, item_ident };
+
+                                        return Some((cmd, Some(item.typ.clone())));
+                                    }
+
+                                    GemSlot::Filled(inserted_gem) => {
+                                        let higher_value = gem.value > inserted_gem.value;
+
+                                        if higher_value && inserted_gem.value < min_filled_value {
+                                            min_filled_value = inserted_gem.value;
+
+                                            best_target = Some(slot);
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
 
-                    if ap.size > potion.size {
-                        continue;
-                    }
-
-                    let (ts, max) = (chrono::Local::now().timestamp(), 12 * 24 * 60 * 60);
-
-                    if !ap.expires.map_or(false, |exp| exp.timestamp() - ts >= max) {
-                        let from = ItemPosition::from(from_pos);
-
-                        let cmd = Command::UsePotion { from, item_ident };
+                    if let Some(to_slot) = best_target {
+                        let cmd = Command::Equip { from_pos, to_slot, item_ident };
 
                         return Some((cmd, Some(item.typ.clone())));
                     }
                 }
 
-                None => {
-                    let cmd = Command::UsePotion { from: ItemPosition::from(from_pos), item_ident };
+                if let Some(ref companions) = gs.dungeons.companions {
+                    let cs = [CompanionClass::Warrior, CompanionClass::Mage, CompanionClass::Scout];
 
-                    return Some((cmd, Some(item.typ.clone())));
-                }
-            }
-        }
+                    let make_cmd = |to_slot, to_companion| {
+                        return Command::EquipCompanion {
+                            from_pos,
+                            to_slot,
+                            item_ident,
+                            to_companion,
+                        };
+                    };
 
-        if let ItemType::Gem(gem) = &item.typ {
-            let player_attr = gs.character.class.main_attribute();
-            let match_attrib = matches_attr(gem.typ, player_attr);
-
-            let is_elig = gem.typ == GemType::All || gem.typ == GemType::Legendary || match_attrib;
-
-            if is_elig {
-                let (mut best_target, mut min_filled_value) = (None, u32::MAX);
-
-                for slot in EquipmentSlot::iter() {
-                    if let Some(eq_item) = gs.character.equipment.0[slot].as_ref() {
-                        if let Some(gem_slot) = eq_item.gem_slot {
-                            match gem_slot {
-                                GemSlot::Empty => {
-                                    let to_slot = slot;
-
-                                    let cmd = Command::Equip { from_pos, to_slot, item_ident };
-
-                                    return Some((cmd, Some(item.typ.clone())));
-                                }
-
-                                GemSlot::Filled(inserted_gem) => {
-                                    let higher_value = gem.value > inserted_gem.value;
-
-                                    if higher_value && inserted_gem.value < min_filled_value {
-                                        min_filled_value = inserted_gem.value;
-
-                                        best_target = Some(slot);
-                                    }
-                                }
-                            }
+                    for comp in cs {
+                        if companions[comp].level == 0 {
+                            continue;
                         }
-                    }
-                }
 
-                if let Some(to_slot) = best_target {
-                    let cmd = Command::Equip { from_pos, to_slot, item_ident };
+                        let player_attr = Class::from(comp).main_attribute();
+                        let matches_att = matches_attr(gem.typ, player_attr);
 
-                    return Some((cmd, Some(item.typ.clone())));
-                }
-            }
+                        let (all, leg) = (gem.typ == GemType::All, gem.typ == GemType::Legendary);
 
-            if let Some(ref companions) = gs.dungeons.companions {
-                let comps = [CompanionClass::Warrior, CompanionClass::Mage, CompanionClass::Scout];
+                        let is_eligible = all || leg || matches_att;
 
-                let make_cmd = |to_slot, to_companion| {
-                    return Command::EquipCompanion { from_pos, to_slot, item_ident, to_companion };
-                };
+                        if is_eligible {
+                            let (mut best_target, mut min_filled_value) = (None, u32::MAX);
 
-                for comp in comps {
-                    if companions[comp].level == 0 {
-                        continue;
-                    }
+                            for slot in EquipmentSlot::iter() {
+                                if let Some(eq_item) = companions[comp].equipment.0[slot].as_ref() {
+                                    if let Some(gem_slot) = eq_item.gem_slot {
+                                        match gem_slot {
+                                            GemSlot::Empty => {
+                                                let cmd = make_cmd(slot, comp);
 
-                    let player_attr = Class::from(comp).main_attribute();
-                    let matches_att = matches_attr(gem.typ, player_attr);
+                                                return Some((cmd, Some(item.typ.clone())));
+                                            }
 
-                    let (all, leg) = (gem.typ == GemType::All, gem.typ == GemType::Legendary);
+                                            GemSlot::Filled(ins) => {
+                                                let higher_value = gem.value > ins.value;
 
-                    let is_eligible = all || leg || matches_att;
+                                                if higher_value && ins.value < min_filled_value {
+                                                    min_filled_value = ins.value;
 
-                    if is_eligible {
-                        let (mut best_target, mut min_filled_value) = (None, u32::MAX);
-
-                        for slot in EquipmentSlot::iter() {
-                            if let Some(eq_item) = companions[comp].equipment.0[slot].as_ref() {
-                                if let Some(gem_slot) = eq_item.gem_slot {
-                                    match gem_slot {
-                                        GemSlot::Empty => {
-                                            let cmd = make_cmd(slot, comp);
-
-                                            return Some((cmd, Some(item.typ.clone())));
-                                        }
-
-                                        GemSlot::Filled(ins) => {
-                                            let higher_value = gem.value > ins.value;
-
-                                            if higher_value && ins.value < min_filled_value {
-                                                min_filled_value = ins.value;
-
-                                                best_target = Some(slot);
+                                                    best_target = Some(slot);
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
 
-                        if let Some(to_slot) = best_target {
-                            return Some((make_cmd(to_slot, comp), Some(item.typ.clone())));
+                            if let Some(to_slot) = best_target {
+                                return Some((make_cmd(to_slot, comp), Some(item.typ.clone())));
+                            }
                         }
                     }
                 }
+
+                continue;
             }
 
-            continue;
-        }
-
-        if let Some(to_slot) = target_equipment_slot(session, item) {
-            let cmd = Command::Equip { from_pos, to_slot, item_ident };
-
-            return Some((cmd, Some(item.typ.clone())));
-        }
-
-        let Some(slot) = item.typ.equipment_slot() else {
-            continue;
-        };
-
-        for companion in [CompanionClass::Warrior, CompanionClass::Mage, CompanionClass::Scout] {
-            if s_eq_comp(session, item, slot, companion) {
-                let (to_slot, to_companion) = (slot, companion);
-
-                let cmd = Command::EquipCompanion { from_pos, to_slot, item_ident, to_companion };
+            if let Some(to_slot) = target_equipment_slot(session, item) {
+                let cmd = Command::Equip { from_pos, to_slot, item_ident };
 
                 return Some((cmd, Some(item.typ.clone())));
+            }
+
+            let Some(slot) = item.typ.equipment_slot() else {
+                continue;
+            };
+
+            for companion in [CompanionClass::Warrior, CompanionClass::Mage, CompanionClass::Scout]
+            {
+                if s_eq_comp(session, item, slot, companion) {
+                    let (to_slot, to_companion) = (slot, companion);
+
+                    let cmd =
+                        Command::EquipCompanion { from_pos, to_slot, item_ident, to_companion };
+
+                    return Some((cmd, Some(item.typ.clone())));
+                }
             }
         }
     }
@@ -449,7 +471,7 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
 
     for (bag_pos, slot) in gs.character.inventory.iter() {
         if let Some(item) = slot {
-            if item.typ == ItemType::ToiletKey && !toilet_unlocked {
+            if *ENABLE_TOILET && item.typ == ItemType::ToiletKey && !toilet_unlocked {
                 continue;
             }
 
@@ -457,7 +479,7 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
         }
     }
 
-    if gs.character.level >= 90 && gs.blacksmith.is_some() {
+    if *ENABLE_BLACKSMITH && gs.character.level >= 90 && gs.blacksmith.is_some() {
         let blacksmith = gs.blacksmith.as_ref().unwrap();
 
         if blacksmith.dismantle_left > 0 {
@@ -515,7 +537,7 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
         }
     }
 
-    if gs.character.level >= 90 && gs.blacksmith.is_some() {
+    if *ENABLE_BLACKSMITH && gs.character.level >= 90 && gs.blacksmith.is_some() {
         let bs = gs.blacksmith.as_ref().unwrap();
 
         let (mut tsm, mut tsa) = (0, 0);

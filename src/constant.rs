@@ -12,6 +12,9 @@ pub const ENABLE_ARENA: bool = true;
 /// Enable or disable Dungeon fights (dungeons, tower, portal, shadow world).
 pub const ENABLE_DUNGEON: bool = true;
 
+/// Enable or disable Hellevator activities (entering, battles, daily rewards).
+pub const ENABLE_HELLEVATOR: bool = true;
+
 /// Enable or disable Pet activities (habitat fights, pet battles, feeding).
 pub const ENABLE_PETS: bool = true;
 
@@ -26,8 +29,14 @@ pub const ENABLE_UNDERWORLD: bool = true;
 pub const ENABLE_IDLE: bool = true;
 
 // Character & Economy
-/// Enable or disable inventory management (equipping upgrades, dismantling, selling).
+/// Enable or disable inventory management (equipping upgrades, managing potions, gems, selling).
 pub const ENABLE_INVENTORY: bool = true;
+
+/// Enable or disable Arcane Toilet interactions (unlocking, sacrifices, flushing).
+pub const ENABLE_TOILET: bool = true;
+
+/// Enable or disable Blacksmith interactions (dismantling, socket upgrades, item upgrades).
+pub const ENABLE_BLACKSMITH: bool = true;
 
 /// Enable or disable shop interactions (buying items, scrapbooks, dice).
 pub const ENABLE_SHOP: bool = true;
@@ -49,8 +58,11 @@ pub const ENABLE_GUILD: bool = true;
 pub const ENABLE_MAIL: bool = true;
 
 // Routine & Automation
-/// Enable or disable daily rewards (calendar, daily & event quests, Hellevator, Wheel of Fortune, dice).
+/// Enable or disable daily rewards (calendar, daily & event quests, mail claimables).
 pub const ENABLE_DAILY: bool = true;
+
+/// Enable or disable Wheel of Fortune spins (Dr. Abawuwu free spins and lucky coins).
+pub const ENABLE_WHEEL: bool = true;
 
 /// Enable or disable city guard work when out of thirst or before daytime start.
 pub const ENABLE_GUARD: bool = true;

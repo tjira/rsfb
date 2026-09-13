@@ -77,6 +77,10 @@ static ENABLE_IDLE: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_idl
 static ENABLE_DUNGEON: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_dungeon);
 static ENABLE_PETS: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_pets);
 static ENABLE_EXPEDITION: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_expedition);
+static ENABLE_TOILET: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_toilet);
+static ENABLE_BLACKSMITH: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_blacksmith);
+static ENABLE_HELLEVATOR: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_hellevator);
+static ENABLE_WHEEL: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_wheel);
 
 #[derive(Debug, Clone)]
 struct CharacterStatus {
@@ -466,7 +470,7 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
             shop(&mut sess).await;
         }
 
-        if *ENABLE_INVENTORY {
+        if *ENABLE_INVENTORY || *ENABLE_BLACKSMITH || *ENABLE_TOILET {
             inventory(&mut sess).await;
         }
 
@@ -490,7 +494,7 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
             continue;
         }
 
-        if *ENABLE_DAILY {
+        if *ENABLE_DAILY || *ENABLE_HELLEVATOR || *ENABLE_WHEEL {
             daily(&mut sess).await;
         }
 
@@ -518,7 +522,7 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
             idle(&mut sess).await;
         }
 
-        if *ENABLE_DUNGEON {
+        if *ENABLE_DUNGEON || *ENABLE_HELLEVATOR {
             dungeon(&mut sess).await;
         }
 

@@ -7,16 +7,20 @@ enable_pets       = true # Pet habitat fights, pet battles, and pet feeding
 enable_fortress   = true # Fortress harvesting, building, gem mine, units, attacks
 enable_underworld = true # Underworld harvesting, building, hero lures, units
 enable_idle       = true # Idle game (Arena Manager) upgrades and rune sacrifices
-enable_inventory  = true # Equipping upgrades, blacksmith dismantle, selling surplus
+enable_inventory  = true # Equipping upgrades, managing potions, gems, and selling surplus
 enable_shop       = true # Buying equipment upgrades, scrapbooks, and dice game
 enable_skill      = true # Automatic character attribute upgrades using surplus gold
 enable_mount      = true # Automatic mount rental and renewals (e.g. dragon / gryphon)
 enable_witch      = true # Witch cauldron item donations and enchantments
 enable_guild      = true # Guild battles, defenses, guild portal, hydra, donations
 enable_mail       = true # Reading incoming inbox mail and notifications
-enable_daily      = true # Daily calendar, event tasks, daily quests, Hellevator
+enable_daily      = true # Daily calendar, event tasks, daily quests, and mail claimables
 enable_guard      = true # City guard duty when out of thirst or before daytime start
 enable_unlock     = true # Automatically claiming pending feature unlocks
+enable_toilet     = true # Arcane Toilet unlocking, item sacrifices, and mana flushing
+enable_blacksmith = true # Blacksmith dismantling, socket upgrades, and item upgrades
+enable_hellevator = true # Hellevator event battles, entering, and daily reward claims
+enable_wheel      = true # Wheel of Fortune (Dr. Abawuwu) free spins and lucky coin spins
 
 # Bot Schedule & Status Timers
 [schedule]

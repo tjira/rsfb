@@ -14,6 +14,9 @@ use crate::log::log;
 static MIN_FREE_SLOTS: LazyLock<usize> = LazyLock::new(|| CONFIG.inventory.min_free_slots);
 static WHEEL_MAX_DAILY_SPINS: LazyLock<u8> = LazyLock::new(|| CONFIG.daily.wheel_max_daily_spins);
 static WHEEL_SPINS_LUCKY_DAY: LazyLock<u8> = LazyLock::new(|| CONFIG.daily.wheel_spins_lucky_day);
+static ENABLE_DAILY: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_daily);
+static ENABLE_HELLEVATOR: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_hellevator);
+static ENABLE_WHEEL: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_wheel);
 
 fn daily_next(session: &SimpleSession) -> Option<Command> {
     let Some(gs) = session.game_state() else {
@@ -26,31 +29,35 @@ fn daily_next(session: &SimpleSession) -> Option<Command> {
 
     let now = chrono::Local::now();
 
-    if let Some(next) = gs.specials.calendar.next_possible {
-        if now >= next {
-            return Some(Command::CollectCalendar);
+    if *ENABLE_DAILY {
+        if let Some(next) = gs.specials.calendar.next_possible {
+            if now >= next {
+                return Some(Command::CollectCalendar);
+            }
+        }
+
+        if gs.specials.advent_calendar.is_some() {
+            return Some(Command::CollectAdventsCalendar);
+        }
+
+        for i in 0..3 {
+            let chest = &gs.specials.tasks.daily.rewards[i];
+
+            if chest.required_points > 0 && gs.specials.tasks.daily.can_open_chest(i) {
+                return Some(Command::CollectDailyQuestReward { pos: i });
+            }
+        }
+
+        for i in 0..3 {
+            let chest = &gs.specials.tasks.event.rewards[i];
+
+            if chest.required_points > 0 && gs.specials.tasks.event.can_open_chest(i) {
+                return Some(Command::CollectEventTaskReward { pos: i });
+            }
         }
     }
 
-    if gs.specials.advent_calendar.is_some() {
-        return Some(Command::CollectAdventsCalendar);
-    }
-
-    for i in 0..3 {
-        let chest = &gs.specials.tasks.daily.rewards[i];
-        if chest.required_points > 0 && gs.specials.tasks.daily.can_open_chest(i) {
-            return Some(Command::CollectDailyQuestReward { pos: i });
-        }
-    }
-
-    for i in 0..3 {
-        let chest = &gs.specials.tasks.event.rewards[i];
-        if chest.required_points > 0 && gs.specials.tasks.event.can_open_chest(i) {
-            return Some(Command::CollectEventTaskReward { pos: i });
-        }
-    }
-
-    if gs.character.level >= 10 {
+    if *ENABLE_HELLEVATOR && gs.character.level >= 10 {
         match gs.hellevator.status() {
             HellevatorStatus::Active(hellevator) => {
                 if hellevator.rewards_yesterday.as_ref().is_some_and(|r| r.claimable()) {
@@ -65,26 +72,28 @@ fn daily_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
-    for claimable in &gs.mail.claimables {
-        if claimable.status != ClaimableStatus::Claimed {
-            return Some(Command::ClaimableClaim { msg_id: claimable.msg_id });
+    if *ENABLE_DAILY {
+        for claimable in &gs.mail.claimables {
+            if claimable.status != ClaimableStatus::Claimed {
+                return Some(Command::ClaimableClaim { msg_id: claimable.msg_id });
+            }
         }
     }
 
-    if let Some(next) = gs.specials.wheel.next_free_spin {
-        if now >= next && gs.specials.wheel.spins_today < *WHEEL_MAX_DAILY_SPINS {
-            return Some(Command::SpinWheelOfFortune { payment: FortunePayment::FreeTurn });
+    if *ENABLE_WHEEL {
+        if let Some(next) = gs.specials.wheel.next_free_spin {
+            if now >= next && gs.specials.wheel.spins_today < *WHEEL_MAX_DAILY_SPINS {
+                return Some(Command::SpinWheelOfFortune { payment: FortunePayment::FreeTurn });
+            }
         }
-    }
 
-    let max_daily_spins = if gs.specials.events.active.contains(&Event::LuckyDay) {
-        *WHEEL_SPINS_LUCKY_DAY
-    } else {
-        *WHEEL_MAX_DAILY_SPINS
-    };
+        let ld = gs.specials.events.active.contains(&Event::LuckyDay);
 
-    if gs.specials.wheel.lucky_coins >= 10 && gs.specials.wheel.spins_today < max_daily_spins {
-        return Some(Command::SpinWheelOfFortune { payment: FortunePayment::LuckyCoins });
+        let max_daily_spins = if ld { *WHEEL_SPINS_LUCKY_DAY } else { *WHEEL_MAX_DAILY_SPINS };
+
+        if gs.specials.wheel.lucky_coins >= 10 && gs.specials.wheel.spins_today < max_daily_spins {
+            return Some(Command::SpinWheelOfFortune { payment: FortunePayment::LuckyCoins });
+        }
     }
 
     None

@@ -39,6 +39,10 @@ pub struct FeatureConfig {
     pub enable_daily: bool,
     pub enable_guard: bool,
     pub enable_unlock: bool,
+    pub enable_toilet: bool,
+    pub enable_blacksmith: bool,
+    pub enable_hellevator: bool,
+    pub enable_wheel: bool,
 }
 
 impl Default for FeatureConfig {
@@ -61,6 +65,10 @@ impl Default for FeatureConfig {
             enable_daily: ENABLE_DAILY,
             enable_guard: ENABLE_GUARD,
             enable_unlock: ENABLE_UNLOCK,
+            enable_toilet: ENABLE_TOILET,
+            enable_blacksmith: ENABLE_BLACKSMITH,
+            enable_hellevator: ENABLE_HELLEVATOR,
+            enable_wheel: ENABLE_WHEEL,
         }
     }
 }
