@@ -31,13 +31,14 @@ mod mount;
 mod pets;
 mod shop;
 mod skill;
+mod underworld;
 mod witch;
 
 use arena::arena;
 use daily::daily;
 use dungeon::dungeon;
 use expedition::expedition;
-use fortress::{fortress, underworld};
+use fortress::fortress;
 use guard::guard;
 use guild::guild;
 use inventory::inventory;
@@ -46,6 +47,7 @@ use mount::mount;
 use pets::pets;
 use shop::shop;
 use skill::skill;
+use underworld::underworld;
 use witch::witch;
 
 #[derive(Debug, Clone)]
@@ -393,7 +395,9 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
 
     update_character_status(&sess, &sm).await;
 
-    mail(&mut sess).await;
+    if constant::ENABLE_MAIL {
+        mail(&mut sess).await;
+    }
 
     loop {
         let hour = chrono::Local::now().hour();
@@ -416,9 +420,13 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
 
         update_character_status(&sess, &sm).await;
 
-        unlock(&mut sess).await;
+        if constant::ENABLE_UNLOCK {
+            unlock(&mut sess).await;
+        }
 
-        guard(&mut sess).await;
+        if constant::ENABLE_GUARD {
+            guard(&mut sess).await;
+        }
 
         if hour < constant::EXPEDITION_START_HOUR {
             wait_between_actions(10000.0, 1200.0, 8000.0, 15000.0).await;
@@ -426,13 +434,21 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
             continue;
         }
 
-        shop(&mut sess).await;
+        if constant::ENABLE_SHOP {
+            shop(&mut sess).await;
+        }
 
-        inventory(&mut sess).await;
+        if constant::ENABLE_INVENTORY {
+            inventory(&mut sess).await;
+        }
 
-        fortress(&mut sess).await;
+        if constant::ENABLE_FORTRESS {
+            fortress(&mut sess).await;
+        }
 
-        underworld(&mut sess).await;
+        if constant::ENABLE_UNDERWORLD {
+            underworld(&mut sess).await;
+        }
 
         let Some(gs) = sess.game_state() else {
             continue;
@@ -446,16 +462,37 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
             continue;
         }
 
-        daily(&mut sess).await;
-        guild(&mut sess).await;
-        skill(&mut sess).await;
-        mount(&mut sess).await;
-        witch(&mut sess).await;
-        arena(&mut sess).await;
+        if constant::ENABLE_DAILY {
+            daily(&mut sess).await;
+        }
 
-        dungeon(&mut sess).await;
+        if constant::ENABLE_GUILD {
+            guild(&mut sess).await;
+        }
 
-        pets(&mut sess).await;
+        if constant::ENABLE_SKILL {
+            skill(&mut sess).await;
+        }
+
+        if constant::ENABLE_MOUNT {
+            mount(&mut sess).await;
+        }
+
+        if constant::ENABLE_WITCH {
+            witch(&mut sess).await;
+        }
+
+        if constant::ENABLE_ARENA {
+            arena(&mut sess).await;
+        }
+
+        if constant::ENABLE_DUNGEON {
+            dungeon(&mut sess).await;
+        }
+
+        if constant::ENABLE_PETS {
+            pets(&mut sess).await;
+        }
 
         let Some(gs) = sess.game_state() else {
             continue;
@@ -465,7 +502,9 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
 
         let can_drink_beer = expedition::can_drink_beer(&sess);
 
-        if gs.tavern.current_action == CurrentAction::Expedition || thirst > 0 || can_drink_beer {
+        let is_exp = gs.tavern.current_action == CurrentAction::Expedition;
+
+        if constant::ENABLE_EXPEDITION && (is_exp || thirst > 0 || can_drink_beer) {
             expedition(&mut sess).await;
         }
 
