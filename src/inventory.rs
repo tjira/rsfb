@@ -18,6 +18,7 @@ use crate::log::log;
 static MIN_FREE_SLOTS: LazyLock<usize> = LazyLock::new(|| CONFIG.inventory.min_free_slots);
 static EPIC_MULTIPLIER: LazyLock<f64> = LazyLock::new(|| CONFIG.inventory.epic_multiplier);
 static MIN_ARCANE: LazyLock<u64> = LazyLock::new(|| CONFIG.inventory.min_arcane);
+static MIN_ARCANE_CLEANUP: LazyLock<u64> = LazyLock::new(|| CONFIG.inventory.min_arcane_cleanup);
 static ENABLE_INVENTORY: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_inventory);
 static ENABLE_TOILET: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_toilet);
 static ENABLE_BLACKSMITH: LazyLock<bool> = LazyLock::new(|| CONFIG.features.enable_blacksmith);
@@ -68,7 +69,7 @@ fn should_equip(session: &SimpleSession, it: &Item, slot: EquipmentSlot) -> bool
     }
 
     if new_is_special && !old_is_special {
-        return a_old < a_new * mult;
+        return a_new > a_old;
     }
 
     a_new > a_old
@@ -109,7 +110,7 @@ fn s_eq_comp(session: &SimpleSession, it: &Item, slot: EquipmentSlot, cc: Compan
     }
 
     if new_is_special && !old_is_special {
-        return a_old < a_new * mult;
+        return a_new > a_old;
     }
 
     a_new > a_old
@@ -176,9 +177,11 @@ fn sell(s: &SimpleSession, pos: PlayerItemPosition, ii: ItemCommandIdent, item: 
     if *ENABLE_BLACKSMITH && gs.character.level >= 90 {
         if let Some(blacksmith) = &gs.blacksmith {
             if blacksmith.dismantle_left > 0 && item.typ.equipment_slot().is_some() {
-                let action = BlacksmithAction::Dismantle;
+                if item.dismantle_reward().arcane >= *MIN_ARCANE_CLEANUP {
+                    let action = BlacksmithAction::Dismantle;
 
-                return Command::Blacksmith { item_pos: pos, action, item_ident: ii };
+                    return Command::Blacksmith { item_pos: pos, action, item_ident: ii };
+                }
             }
         }
     }

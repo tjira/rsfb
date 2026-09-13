@@ -100,6 +100,11 @@ pub const EPIC_LEGENDARY_MULTIPLIER: f64 = 2.0;
 /// remain, even if the inventory still has plenty of free space.
 pub const BLACKSMITH_MIN_ARCANE_DISMANTLE: u64 = 1000;
 
+/// Minimum Arcane Splinters an item must yield to be dismantled during inventory cleanup.
+/// When inventory space is needed, items yielding at least this amount will be dismantled
+/// instead of sold to the shop, if daily dismantles remain.
+pub const BLACKSMITH_MIN_ARCANE_CLEANUP: u64 = 100;
+
 // =============================================================================
 // Skills & Attribute Weights
 // =============================================================================

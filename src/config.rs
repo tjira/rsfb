@@ -95,6 +95,7 @@ pub struct InventoryConfig {
     pub min_free_slots: usize,
     pub epic_multiplier: f64,
     pub min_arcane: u64,
+    pub min_arcane_cleanup: u64,
 }
 
 impl Default for InventoryConfig {
@@ -103,6 +104,7 @@ impl Default for InventoryConfig {
             min_free_slots: INVENTORY_MIN_FREE_SLOTS,
             epic_multiplier: EPIC_LEGENDARY_MULTIPLIER,
             min_arcane: BLACKSMITH_MIN_ARCANE_DISMANTLE,
+            min_arcane_cleanup: BLACKSMITH_MIN_ARCANE_CLEANUP,
         }
     }
 }
