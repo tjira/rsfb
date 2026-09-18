@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use strum::IntoEnumIterator;
 
 use sf_api::{
@@ -6,12 +8,19 @@ use sf_api::{
     session::SimpleSession,
 };
 
+use crate::config::CONFIG;
 use crate::log::log;
+
+static MIN_FREE_SLOTS: LazyLock<usize> = LazyLock::new(|| CONFIG.inventory.min_free_slots);
 
 fn shop_next(session: &SimpleSession) -> Option<(Command, ItemType)> {
     let Some(gs) = session.game_state() else {
         return None;
     };
+
+    if gs.character.inventory.count_free_slots() <= *MIN_FREE_SLOTS {
+        return None;
+    }
 
     let main_attr = gs.character.class.main_attribute();
 
@@ -87,7 +96,7 @@ pub async fn shop(session: &mut SimpleSession) {
         return;
     };
 
-    if gs.character.inventory.count_free_slots() == 0 {
+    if gs.character.inventory.count_free_slots() <= *MIN_FREE_SLOTS {
         return;
     }
 

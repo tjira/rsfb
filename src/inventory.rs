@@ -168,7 +168,9 @@ fn sell(s: &SimpleSession, pos: PlayerItemPosition, ii: ItemCommandIdent, item: 
 
     if toilet_unlocked {
         if let Some(toilet) = gs.tavern.toilet {
-            if toilet.sacrifices_left > 0 {
+            let is_gem = matches!(item.typ, ItemType::Gem(_));
+
+            if toilet.sacrifices_left > 0 && (item.typ.equipment_slot().is_some() || is_gem) {
                 return Command::ToiletDrop { item_pos: pos };
             }
         }
@@ -492,15 +494,19 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
     let mut surplus_items = Vec::new();
 
     for (bag_pos, slot) in gs.character.inventory.iter() {
-        if let Some(item) = slot {
-            if item.typ.equipment_slot().is_none() {
-                continue;
-            }
+        let Some(item) = slot else {
+            continue;
+        };
 
-            if *ENABLE_TOILET && item.typ == ItemType::ToiletKey && !toilet_unlocked {
-                continue;
-            }
+        if item.typ.is_unique() {
+            continue;
+        }
 
+        let is_equip = item.typ.equipment_slot().is_some();
+        let is_gems = matches!(item.typ, ItemType::Gem(_));
+        let is_p = matches!(item.typ, ItemType::Potion(_));
+
+        if is_equip || is_gems || is_p {
             surplus_items.push((bag_pos, item));
         }
     }
@@ -541,8 +547,14 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
                 }
 
                 if best_sacrifice.is_none() {
-                    if let Some(&(bag_pos, item)) = surplus_items.first() {
-                        best_sacrifice = Some((bag_pos, item));
+                    for &(bag_pos, item) in &surplus_items {
+                        let is_gem = matches!(item.typ, ItemType::Gem(_));
+
+                        if item.typ.equipment_slot().is_some() || is_gem {
+                            best_sacrifice = Some((bag_pos, item));
+
+                            break;
+                        }
                     }
                 }
 
@@ -556,7 +568,23 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
     }
 
     if can_sell {
-        if let Some(&(bag_pos, item)) = surplus_items.first() {
+        let mut to_sell = None;
+
+        for element in &surplus_items {
+            let (_, item) = element;
+
+            if !item.is_epic() {
+                to_sell = Some(element);
+
+                break;
+            }
+        }
+
+        if to_sell.is_none() {
+            to_sell = surplus_items.first();
+        }
+
+        if let Some(&(bag_pos, item)) = to_sell {
             let (item_pos, item_ident) = (PlayerItemPosition::from(bag_pos), item.command_ident());
 
             return Some((sell(session, item_pos, item_ident, item), Some(item.typ.clone())));
@@ -666,7 +694,10 @@ pub async fn inventory(session: &mut SimpleSession) {
             }
 
             Command::UsePotion { .. } => {
-                let message = format!("DRINKING '{}' POTION", fmt_item(&item_typ));
+                let message = match item_typ {
+                    Some(ItemType::QuickSandGlass) => "USING 'QuickSandGlass'".to_string(),
+                    _ => format!("DRINKING '{}' POTION", fmt_item(&item_typ)),
+                };
 
                 log(session, &message);
             }

@@ -486,15 +486,13 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
             continue;
         };
 
-        if gs.character.inventory.count_free_slots() == 0 {
+        let full_inventory = gs.character.inventory.count_free_slots() == 0;
+
+        if full_inventory {
             log::log(&sess, "FULL INVENTORY, SKIPPING EXPEDITIONS, DUNGEONS AND DAILY REWARDS");
-
-            wait_between_actions(10000.0, 1200.0, 8000.0, 15000.0).await;
-
-            continue;
         }
 
-        if *ENABLE_DAILY || *ENABLE_HELLEVATOR || *ENABLE_WHEEL {
+        if !full_inventory && (*ENABLE_DAILY || *ENABLE_HELLEVATOR || *ENABLE_WHEEL) {
             daily(&mut sess).await;
         }
 
@@ -522,7 +520,7 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
             idle(&mut sess).await;
         }
 
-        if *ENABLE_DUNGEON || *ENABLE_HELLEVATOR {
+        if !full_inventory && (*ENABLE_DUNGEON || *ENABLE_HELLEVATOR) {
             dungeon(&mut sess).await;
         }
 
@@ -540,7 +538,7 @@ async fn process_session(mut sess: SimpleSession, user: String, pass: String, sm
 
         let is_exp = gs.tavern.current_action == CurrentAction::Expedition;
 
-        if *ENABLE_EXPEDITION && (is_exp || thirst > 0 || can_drink_beer) {
+        if *ENABLE_EXPEDITION && ((!full_inventory && (thirst > 0 || can_drink_beer)) || is_exp) {
             expedition(&mut sess).await;
         }
 
