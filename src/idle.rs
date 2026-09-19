@@ -60,12 +60,18 @@ pub async fn idle(session: &mut SimpleSession) {
             }
         }
 
-        let Some((building_type, amount, cost)) = cheapest else {
+        let Some((building_type, mut amount, cost)) = cheapest else {
             break;
         };
 
         if cost > idle_game.current_money {
             break;
+        }
+
+        let building = &idle_game.buildings[building_type];
+
+        if building.level >= 10 && building.upgrade_cost_100x <= idle_game.current_money {
+            amount = IdleUpgradeAmount::Hundred;
         }
 
         let msg = format!("IDLE UPGRADE '{:?}' BUILDING", building_type);
