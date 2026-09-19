@@ -8,9 +8,9 @@ enable_fortress   = true # Fortress harvesting, building, gem mine, units, attac
 enable_underworld = true # Underworld harvesting, building, hero lures, units
 enable_idle       = true # Idle game (Arena Manager) upgrades and rune sacrifices
 enable_inventory  = true # Equipping upgrades, managing potions, gems, and selling surplus
-enable_shop       = true # Buying equipment upgrades, scrapbooks, and dice game
+enable_shop       = true # Buying equipment upgrades, potions, and hourglasses
 enable_skill      = true # Automatic character attribute upgrades using surplus gold
-enable_mount      = true # Automatic mount rental and renewals (e.g. dragon / gryphon)
+enable_mount      = true # Automatic mount rental and renewals (bypasses mushroom reserve)
 enable_witch      = true # Witch cauldron item donations and enchantments
 enable_guild      = true # Guild battles, defenses, guild portal, hydra, donations
 enable_mail       = true # Reading incoming inbox mail and notifications
@@ -24,7 +24,7 @@ enable_wheel      = true # Wheel of Fortune (Dr. Abawuwu) free spins and lucky c
 
 # Bot Schedule & Status Timers
 [schedule]
-expedition_hour   = 5   # Hour (0-23) when daytime activities begin; guard before this
+expedition_hour   = 5   # Hour (0-23) when bot activities begin; guard before this
 status_table_secs = 300 # Interval in seconds between status table refreshes
 
 # Inventory & Equipment Management
@@ -50,7 +50,7 @@ goblin_hero_ratio  = 1.5 # Goblin-to-hero level ratio required before underworld
 
 # Economy & Currency Limits
 [economy]
-min_mushroom_reserve = 30  # Minimum mushrooms reserved when spending on upgrades
+min_mushroom_reserve = 30  # Min mushrooms reserved (mount rentals intentionally bypass this)
 guild_mushroom_ratio = 0.1 # Max fraction of mushrooms spent per guild upgrade (10%)
 
 # Daily Rewards & Mini-Games

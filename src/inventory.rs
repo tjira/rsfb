@@ -275,7 +275,9 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
 
     if toilet_unlocked {
         if let Some(toilet) = gs.tavern.toilet {
-            if toilet.mana_total > 0 && toilet.mana_currently >= toilet.mana_total {
+            let free_space = gs.character.inventory.count_free_slots() > 0;
+
+            if toilet.mana_total > 0 && toilet.mana_currently >= toilet.mana_total && free_space {
                 return Some((Command::ToiletFlush, None));
             }
         }

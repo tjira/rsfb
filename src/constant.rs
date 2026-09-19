@@ -38,13 +38,13 @@ pub const ENABLE_TOILET: bool = true;
 /// Enable or disable Blacksmith interactions (dismantling, socket upgrades, item upgrades).
 pub const ENABLE_BLACKSMITH: bool = true;
 
-/// Enable or disable shop interactions (buying items, scrapbooks, dice).
+/// Enable or disable shop interactions (buying equipment upgrades, potions, and hourglasses).
 pub const ENABLE_SHOP: bool = true;
 
 /// Enable or disable automatic skill attribute upgrades.
 pub const ENABLE_SKILL: bool = true;
 
-/// Enable or disable automatic mount rental and renewals.
+/// Enable or disable automatic mount rental and renewals (bypasses mushroom reserve).
 pub const ENABLE_MOUNT: bool = true;
 
 /// Enable or disable witch interactions (cauldron donations, enchantments).
@@ -75,7 +75,7 @@ pub const ENABLE_UNLOCK: bool = true;
 // =============================================================================
 
 /// The hour (in 24-hour local time) when the active botting day begins (5:00 AM).
-/// Before this hour, daytime activities (expeditions, shops, dungeons) are skipped
+/// Before this hour, all daytime and combat activities are paused for stealth,
 /// and city guard duty is prioritized until this target time.
 pub const EXPEDITION_START_HOUR: u32 = 5;
 
@@ -90,9 +90,9 @@ pub const STATUS_TABLE_INTERVAL_SECS: u64 = 300;
 /// When free slots drop below this number, the bot begins selling or sacrificing surplus items.
 pub const INVENTORY_MIN_FREE_SLOTS: usize = 5;
 
-/// Weighting multiplier applied when comparing Epic/Legendary equipment against normal gear.
-/// Normal items must have more than 2x the main attribute of an epic to replace it,
-/// while an epic can replace a normal item even if its main attribute is lower.
+/// Weighting multiplier applied when comparing normal gear against equipped Epic/Legendary gear.
+/// Normal items must exceed an epic's power by this multiplier to replace it,
+/// while an epic item only needs higher power (1.0x) to replace normal gear.
 pub const EPIC_LEGENDARY_MULTIPLIER: f64 = 2.0;
 
 /// Minimum Arcane Splinters an item must yield for proactive blacksmith dismantling.
@@ -145,7 +145,7 @@ pub const GOBLIN_LEVEL_HERO_RATIO: f64 = 1.5;
 
 /// Minimum number of mushrooms kept in reserve when spending mushrooms on optional upgrades.
 /// Upgrades costing mushrooms will only be performed if the remaining mushrooms after purchase
-/// are at least this amount.
+/// are at least this amount. Note: Mount rentals/renewals intentionally bypass this reserve.
 pub const MIN_MUSHROOM_RESERVE: u32 = 30;
 
 /// Maximum proportion of total mushrooms allowed for a single guild upgrade.
