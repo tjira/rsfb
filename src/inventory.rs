@@ -170,7 +170,11 @@ fn sell(s: &SimpleSession, pos: PlayerItemPosition, ii: ItemCommandIdent, item: 
         if let Some(toilet) = gs.tavern.toilet {
             let is_gem = matches!(item.typ, ItemType::Gem(_));
 
-            if toilet.sacrifices_left > 0 && (item.typ.equipment_slot().is_some() || is_gem) {
+            let toilet_full = toilet.mana_total > 0 && toilet.mana_currently >= toilet.mana_total;
+
+            let sac_left = toilet.sacrifices_left;
+
+            if !toilet_full && sac_left > 0 && (item.typ.equipment_slot().is_some() || is_gem) {
                 return Command::ToiletDrop { item_pos: pos };
             }
         }
@@ -537,7 +541,9 @@ fn inventory_next(session: &SimpleSession) -> Option<(Command, Option<ItemType>)
 
     if toilet_unlocked {
         if let Some(toilet) = gs.tavern.toilet {
-            if toilet.sacrifices_left > 0 {
+            let toilet_full = toilet.mana_total > 0 && toilet.mana_currently >= toilet.mana_total;
+
+            if !toilet_full && toilet.sacrifices_left > 0 {
                 let mut best_sacrifice = None;
 
                 for &(bag_pos, item) in &surplus_items {
