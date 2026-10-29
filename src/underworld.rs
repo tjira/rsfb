@@ -23,6 +23,17 @@ static HARVEST_CHECK_MINS: LazyLock<i64> = LazyLock::new(|| CONFIG.fortress.harv
 static HARVEST_RATIO: LazyLock<f64> = LazyLock::new(|| CONFIG.fortress.harvest_ratio);
 static GOBLIN_HERO_RATIO: LazyLock<f64> = LazyLock::new(|| CONFIG.fortress.goblin_hero_ratio);
 
+fn min_hod_level(building: UnderworldBuildingType) -> u8 {
+    match building {
+        UnderworldBuildingType::HeartOfDarkness => 0,
+        UnderworldBuildingType::SoulExtractor | UnderworldBuildingType::GoblinPit => 1,
+        UnderworldBuildingType::Gate | UnderworldBuildingType::TortureChamber => 2,
+        UnderworldBuildingType::GladiatorTrainer | UnderworldBuildingType::TrollBlock => 3,
+        UnderworldBuildingType::GoldPit => 4,
+        UnderworldBuildingType::Adventuromatic | UnderworldBuildingType::Keeper => 5,
+    }
+}
+
 fn underworld_next(session: &SimpleSession) -> Option<Command> {
     let Some(gs) = session.game_state() else {
         return None;
@@ -126,7 +137,9 @@ fn underworld_next(session: &SimpleSession) -> Option<Command> {
 
             let is_hod = building_type == UnderworldBuildingType::HeartOfDarkness;
 
-            let mut can_upgrade = building.level < hod_level && building.level < 15;
+            let is_buildable = hod_level >= min_hod_level(building_type);
+
+            let mut can_upgrade = is_buildable && building.level < hod_level && building.level < 15;
 
             if is_hod {
                 can_upgrade = hod_level < 15;
@@ -146,7 +159,11 @@ fn underworld_next(session: &SimpleSession) -> Option<Command> {
         }
     }
 
-    if underworld.lured_today < 5 {
+    let gate_level = underworld.buildings.get(UnderworldBuildingType::Gate).level;
+
+    let max_lures = gate_level.min(5) as u16;
+
+    if gate_level > 0 && underworld.lured_today < max_lures {
         let goblin_level = underworld.units.get(UnderworldUnitType::Goblin).level as f64;
 
         if let Some(sugg) = underworld.lure_suggestion {
